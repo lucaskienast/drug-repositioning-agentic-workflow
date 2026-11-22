@@ -1042,11 +1042,33 @@ class LiteratureAgent(BaseAgent):
     The output of step 1 becomes input for step 2.
     """
 
+    SUPPORT_LEVELS = {"none", "weak", "moderate", "strong"}
+
     def __init__(self):
         super().__init__(
             "LiteratureAgent",
             "You assess biomedical literature for drug repurposing evidence."
         )
+
+    @staticmethod
+    def _build_queries(name: str, target: str, disease: str, strategy: str) -> List[str]:
+        """PubMed query strings for one drug name according to the routed strategy."""
+        by_target = f'"{name}"[Title/Abstract] AND "{target}"[Title/Abstract]'
+        by_disease = f'"{name}"[Title/Abstract] AND "{disease}"[Title/Abstract]'
+        if strategy == "target_focused":
+            return [by_target]
+        if strategy == "disease_focused":
+            return [by_disease]
+        return [by_target, by_disease]  # broad_search (and any unrecognised strategy)
+
+    @staticmethod
+    def _search_pubmed(query: str, name: str) -> List[Dict]:
+        """Run one PubMed query. In mock mode, return the provided mock articles
+        for the drug name instead (query_pubmed has no mock path of its own and
+        would otherwise hit the live NCBI API)."""
+        if USE_MOCK_DATA:
+            return get_mock_pubmed(name)
+        return query_pubmed(query, max_results=3)
 
     def enrich(self, candidate: DrugCandidate, target: str, disease: str,
                strategy: str) -> DrugCandidate:
@@ -1105,15 +1127,86 @@ class LiteratureAgent(BaseAgent):
             candidate.literature_strength = 0
             return candidate
 
-        # CHAIN STEP 1: Build queries and search PubMed
-        # queries = []
-        # Build queries based on strategy...
-        # Search and collect articles...
+        drug = search_names[0]
 
-        # CHAIN STEP 2: Assess articles with LLM
-        # if articles_found:
-        #     assessment = self._assess_articles(...)
-        #     Update candidate fields from assessment...
+        # CHAIN STEP 1: Build queries from the routed strategy and search PubMed.
+        # Primary name first; synonyms are only used as a fallback when the
+        # primary queries return no articles at all.
+        primary = [(q, drug) for q in self._build_queries(drug, target, disease, strategy)]
+        fallbacks = [(q, name) for name in search_names[1:]
+                     for q in self._build_queries(name, target, disease, strategy)]
+
+        articles: List[Dict] = []
+        seen_pmids = set()
+        queries_tried: List[str] = []
+
+        def _run(query_plan: List[Tuple[str, str]]) -> None:
+            for query, name in query_plan:
+                if (len(articles) >= MAX_PUBMED_ARTICLES_PER_CANDIDATE
+                        or len(queries_tried) >= MAX_PUBMED_QUERIES_PER_CANDIDATE):
+                    return
+                queries_tried.append(query)
+                try:
+                    results = self._search_pubmed(query, name) or []
+                except Exception as e:  # network / API errors must not stop the workflow
+                    logger.warning(f"PubMed query failed for {name}: {query} - {e}")
+                    continue
+                for article in results:
+                    pmid = str(article.get("pmid", "") or "")
+                    if not pmid or pmid in seen_pmids:
+                        continue
+                    seen_pmids.add(pmid)
+                    articles.append(article)
+                    if len(articles) >= MAX_PUBMED_ARTICLES_PER_CANDIDATE:
+                        return
+
+        _run(primary)
+        if not articles and fallbacks:
+            logger.info(f"  No PubMed hits for '{drug}' - trying synonyms {search_names[1:]}")
+            _run(fallbacks)
+
+        candidate.pubmed_articles = articles
+        candidate.provenance.pubmed_pmids = [str(a.get("pmid")) for a in articles]
+        candidate.provenance.pubmed_queries_tried = queries_tried
+
+        if not articles:
+            candidate.literature_support_level = "none"
+            candidate.literature_strength = 0
+            candidate.literature_supporting_pmids = []
+            candidate.literature_summary = (
+                f"No PubMed articles found for {drug} ({strategy}; {len(queries_tried)} queries tried)."
+            )
+            return candidate
+
+        # CHAIN STEP 2: Feed the retrieved articles into the LLM assessment.
+        assessment = self._assess_articles(articles, drug, target, disease)
+        if not isinstance(assessment, dict):
+            assessment = {}
+
+        level = str(assessment.get("support_level", "none")).strip().lower()
+        if level not in self.SUPPORT_LEVELS:
+            level = "none"
+        try:
+            strength = int(round(float(assessment.get("strength", 0))))
+        except (TypeError, ValueError):
+            strength = 0
+        strength = max(0, min(10, strength))
+
+        # Keep only PMIDs that were actually retrieved (guards against hallucinated IDs).
+        retrieved = set(candidate.provenance.pubmed_pmids)
+        raw_pmids = assessment.get("supporting_pmids") or []
+        if not isinstance(raw_pmids, list):
+            raw_pmids = [raw_pmids]
+        supporting = []
+        for p in raw_pmids:
+            p = str(p).upper().replace("PMID:", "").replace("PMID", "").strip()
+            if p in retrieved and p not in supporting:
+                supporting.append(p)
+
+        candidate.literature_support_level = level
+        candidate.literature_strength = strength
+        candidate.literature_summary = str(assessment.get("summary") or "Assessment unavailable.")
+        candidate.literature_supporting_pmids = supporting
 
         # =====================================================================
         # END TODO 4
