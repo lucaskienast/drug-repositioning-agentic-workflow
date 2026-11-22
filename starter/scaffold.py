@@ -1510,6 +1510,13 @@ class EvaluationAgent(BaseAgent):
     # its initial value (prevents re-penalising the same issue every iteration).
     MAX_CUMULATIVE_ADJUSTMENT = 2.0
 
+    def _component_bounds(self, cand: DrugCandidate, component: str) -> Tuple[float, float]:
+        """Allowed range for a component: initial score +/- the cumulative cap, within 0-10."""
+        base = self._baseline_scores.setdefault(id(cand), dict(cand.scores)).get(
+            component, cand.scores.get(component, 0.0))
+        return (max(0.0, base - self.MAX_CUMULATIVE_ADJUSTMENT),
+                min(10.0, base + self.MAX_CUMULATIVE_ADJUSTMENT))
+
     def score_and_rank(self, candidates: List[DrugCandidate], target: str,
                        disease: str, max_iterations: int = 2) -> Tuple[List[DrugCandidate], List[Dict]]:
         """
@@ -1808,6 +1815,7 @@ toward {disease} via {target}. Look specifically for:
 - a component score that does not match the evidence shown, or over-reliance on one factor.
 Do not repeat a problem that an earlier adjustment already addressed. If the only remaining
 issues are ones already addressed, the order counts as reasonable.
+A component scored 0.0 cannot go down and one scored 10.0 cannot go up - do not request that.
 
 Response rules:
 - If the order is reasonable, respond with exactly: Rankings are appropriate
@@ -1863,9 +1871,15 @@ Response rules:
         # TODO 9: Write prompt and apply adjustments
         # =====================================================================
         components = "|".join(self.WEIGHTS.keys())
+        def _fmt(c: DrugCandidate) -> str:
+            parts = []
+            for k, v in c.scores.items():
+                lo, hi = self._component_bounds(c, k)
+                parts.append(f"{k}={v:.1f} (allowed {lo:.0f}-{hi:.0f})")
+            return ", ".join(parts)
+
         current = "\n".join(
-            f"{i + 1}. {c.name}: total={c.total_score:.2f}; "
-            + ", ".join(f"{k}={v:.1f}" for k, v in c.scores.items())
+            f"{i + 1}. {c.name}: total={c.total_score:.2f}; {_fmt(c)}"
             for i, c in enumerate(candidates)
         )
 
@@ -1884,7 +1898,10 @@ Rules:
 - "drug_name" must exactly match a candidate name listed above.
 - "component" must be one of: {components}
 - "adjustment" is a number between -2 and +2 (non-zero).
-- If no change is needed, return an empty array: []
+- The new score must stay within that component's "allowed" range shown above. Only adjust a
+  component that still has room in the direction you need (e.g. a score already at its minimum
+  cannot go down); if the named component has no room, skip that point.
+- If no change is needed or possible, return an empty array: []
 
 Return ONLY a JSON array in exactly this format:
 [
@@ -1931,12 +1948,15 @@ Return ONLY a JSON array in exactly this format:
             old_total = cand.total_score
             # Cap the cumulative change relative to the initial score (+/-2 in total),
             # in addition to the 0-10 bounds.
-            base = self._baseline_scores.setdefault(id(cand), dict(cand.scores)).get(component, old_component)
-            lo = max(0.0, base - self.MAX_CUMULATIVE_ADJUSTMENT)
-            hi = min(10.0, base + self.MAX_CUMULATIVE_ADJUSTMENT)
-            new_component = max(lo, min(hi, old_component + delta))
+            lo, hi = self._component_bounds(cand, component)
+            wanted = old_component + delta
+            new_component = max(lo, min(hi, wanted))
             if new_component == old_component:
-                logger.info(f"  Skipping adjustment (cumulative cap reached): {cand.name} {component} {delta:+.1f}")
+                at_score_bound = (wanted < 0.0 and lo == 0.0) or (wanted > 10.0 and hi == 10.0)
+                why = "0-10 score bound" if at_score_bound else \
+                    f"cumulative +/-{self.MAX_CUMULATIVE_ADJUSTMENT:.0f} cap"
+                logger.info(f"  Skipping adjustment (no effect: {why}): "
+                            f"{cand.name} {component} {old_component:.1f} {delta:+.1f}")
                 continue
             cand.scores[component] = new_component
             cand.total_score = self._weighted_total(cand.scores)
