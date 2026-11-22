@@ -1069,27 +1069,69 @@ class LiteratureAgent(BaseAgent):
     MAX_EXTRA_TERMS = 3
 
     def _search_terms(self, target: str, disease: str) -> Tuple[List[str], List[str]]:
-        """Target and disease search terms, expanded once per (target, disease) via the LLM."""
+        """Target and disease search terms, expanded once per (target, disease)."""
         key = (target.lower().strip(), disease.lower().strip())
         if key not in self._term_cache:
             self._term_cache[key] = self._expand_terms(target, disease)
         return self._term_cache[key]
 
-    def _expand_terms(self, target: str, disease: str) -> Tuple[List[str], List[str]]:
-        """Ask the LLM for specific PubMed synonyms of the target and disease (one call).
-        Falls back to the original terms if the output is unusable (e.g. in mock mode)."""
-        prompt = f"""List PubMed search synonyms for a target gene and a disease.
+    def _gene_synonyms(self, symbol: str) -> List[str]:
+        """Curated alternative names for a human gene from NCBI Gene (official full name,
+        other designations, aliases) - grounded, not LLM-generated. Ordered by usefulness:
+        full name, short designations (<= 4 words, shortest first), then aliases (>= 5 chars)."""
+        if USE_MOCK_DATA:
+            return []
+        try:
+            am = _action_space_module
+            h = am._entrez_call("esearch", db="gene", retmax=1,
+                                term=f"{symbol}[Gene Symbol] AND Homo sapiens[Organism]")
+            ids = am.Entrez.read(h).get("IdList", [])
+            h.close()
+            if not ids:
+                return []
+            h = am._entrez_call("esummary", db="gene", id=ids[0])
+            doc = am.Entrez.read(h)["DocumentSummarySet"]["DocumentSummary"][0]
+            h.close()
+        except Exception as e:
+            logger.warning(f"NCBI Gene lookup failed for {symbol}: {e}")
+            return []
 
-TARGET gene: {target}
+        description = str(doc.get("Description", "") or "").strip()
+        designations = [d.strip() for d in str(doc.get("OtherDesignations", "") or "").split("|") if d.strip()]
+        aliases = [a.strip() for a in str(doc.get("OtherAliases", "") or "").split(",") if a.strip()]
+
+        def _key(s: str) -> str:
+            return re.sub(r"[^a-z0-9]", "", s.lower())
+
+        short = [d for d in designations if len(d.split()) <= 4]
+        # shortest first; among punctuation-only variants prefer the hyphenated form
+        # (its hyphenation variants are generated later, the reverse is not)
+        short.sort(key=lambda d: (len(_key(d)), -d.count("-")))
+        good_aliases = [a for a in aliases if re.fullmatch(r"[A-Za-z0-9-]{5,}", a)]
+
+        out: List[str] = []
+        seen = {_key(symbol)}
+        for term in ([description] if description else []) + short + good_aliases:
+            k = _key(term)
+            if k and k not in seen:
+                seen.add(k)
+                out.append(term)
+        return out
+
+    def _expand_terms(self, target: str, disease: str) -> Tuple[List[str], List[str]]:
+        """Target synonyms come from NCBI Gene (curated); disease synonyms from one LLM call.
+        Both fall back to the original term if nothing usable is returned (e.g. in mock mode)."""
+        prompt = f"""List PubMed search synonyms for a disease.
+
 DISEASE: {disease}
 
-Give up to {self.MAX_EXTRA_TERMS} alternative names for EACH that researchers commonly use in paper
-titles/abstracts: protein or receptor names and established aliases for the target; alternative
-spellings, current or former nomenclature, and standard abbreviations for the disease.
-Only exact synonyms of the same entity - no broader categories, related diseases or pathways.
+Give up to {self.MAX_EXTRA_TERMS} alternative names researchers use for EXACTLY this condition in
+paper titles/abstracts: alternative spellings, current or former official names, and standard
+abbreviations. Never give a broader umbrella condition, a narrower subtype, or a related condition
+(e.g. for "type 1 diabetes" do not give "diabetes mellitus").
 
 Return ONLY valid JSON in exactly this format:
-{{"target_synonyms": ["<term>", ...], "disease_synonyms": ["<term>", ...]}}"""
+{{"disease_synonyms": ["<term>", ...]}}"""
 
         result = self._call_llm_json(prompt, {})
         if not isinstance(result, dict):
@@ -1110,7 +1152,7 @@ Return ONLY valid JSON in exactly this format:
                     break
             return terms
 
-        target_terms = _clean(result.get("target_synonyms"), target)
+        target_terms = _clean(self._gene_synonyms(target), target)
         disease_terms = _clean(result.get("disease_synonyms"), disease)
         logger.info(f"  LiteratureAgent search terms: target={target_terms} disease={disease_terms}")
         return target_terms, disease_terms
