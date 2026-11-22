@@ -647,15 +647,56 @@ class ActionPlanningAgent(BaseAgent):
         # =====================================================================
         # TODO 1: Write your prompt here
         # =====================================================================
-        prompt = f"""
-        # YOUR PROMPT HERE
-        # Include: TARGET={target}, DISEASE={disease}
-        # Request JSON with objective and steps
-        # Each step needs: step number, action description, task_type
-        # Required task_types: data_mining, enrichment, scoring, roadmap
-        """
+        prompt = f"""Create an action plan for a computational drug repurposing investigation.
+
+CONTEXT
+- TARGET gene: {target}
+- DISEASE: {disease}
+- Goal: find existing compounds that act on {target} and could be repurposed to treat {disease}.
+
+The plan must contain EXACTLY 4 steps, in EXACTLY this order, one task_type per step:
+1. "data_mining"  - mine ChEMBL and Open Targets for compounds and known drugs acting on {target}.
+2. "enrichment"   - gather PubMed literature evidence and FDA safety data (FAERS, drug labels) for the top candidates.
+3. "scoring"      - score and rank candidates on target binding, literature support, safety, development stage and disease relevance.
+4. "roadmap"      - write an experimental validation roadmap for the top-ranked candidates.
+
+Field rules:
+- "objective": ONE sentence describing the overall goal; mention {target} and {disease}.
+- "action": ONE specific sentence describing what the step does for {target} / {disease}.
+- "task_type": copy the task_type value exactly as written above (lowercase, underscore).
+
+Return ONLY valid JSON (no markdown, no comments, no extra keys) in exactly this format:
+{{
+  "objective": "<one sentence>",
+  "steps": [
+    {{"step": 1, "action": "<one sentence>", "task_type": "data_mining"}},
+    {{"step": 2, "action": "<one sentence>", "task_type": "enrichment"}},
+    {{"step": 3, "action": "<one sentence>", "task_type": "scoring"}},
+    {{"step": 4, "action": "<one sentence>", "task_type": "roadmap"}}
+  ]
+}}"""
 
         raw = self._call_llm_json(prompt, {})
+        if not isinstance(raw, dict):
+            raw = {}  # e.g. the model returned a bare list; let _build_plan fall back
+
+        # Enforce the canonical order and exactly one step per task_type. If any
+        # required task_type is missing, _build_plan() substitutes the default plan.
+        steps = raw.get("steps") if isinstance(raw.get("steps"), list) else []
+        by_type: Dict[str, Dict] = {}
+        for s in steps:
+            if isinstance(s, dict):
+                tt = str(s.get("task_type", "")).strip().lower()
+                if tt in REQUIRED_TASK_TYPES and tt not in by_type:
+                    by_type[tt] = s
+        if len(by_type) == len(REQUIRED_TASK_TYPES):
+            raw["steps"] = [
+                {"step": i, "action": str(by_type[tt].get("action", "")).strip() or tt, "task_type": tt}
+                for i, tt in enumerate(REQUIRED_TASK_TYPES, 1)
+            ]
+        else:
+            raw["steps"] = []
+            logger.warning("ActionPlanningAgent: plan incomplete or unparseable - using default plan")
         # =====================================================================
         # END TODO 1
         # =====================================================================
