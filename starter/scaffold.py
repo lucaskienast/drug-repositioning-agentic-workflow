@@ -1118,6 +1118,35 @@ class LiteratureAgent(BaseAgent):
                 out.append(term)
         return out
 
+    @staticmethod
+    def _filter_disease_synonyms(disease: str, suggestions: List) -> Tuple[List[str], List[str]]:
+        """Deterministic guard against broader/related conditions suggested by the LLM.
+        Multi-word terms must contain the disease name's head word (e.g. "steatohepatitis");
+        acronyms are rejected when they abbreviate a rejected term (e.g. NAFLD). Conservative:
+        it may drop a valid synonym with a different head word, but won't admit broader terms."""
+        def _tokens(s: str) -> List[str]:
+            return [t for t in re.split(r"[\s\-/]+", s.lower()) if t]
+
+        orig_tokens = _tokens(disease)
+        head = orig_tokens[-1] if orig_tokens else ""
+        kept: List[str] = []
+        rejected: List[str] = []
+        acronyms: List[str] = []
+        for s in suggestions:
+            s = str(s).strip()
+            if not s:
+                continue
+            if len(_tokens(s)) == 1 and re.fullmatch(r"[A-Za-z0-9]{2,8}", s):
+                acronyms.append(s)              # decided after all expansions are known
+            elif head and head in _tokens(s):
+                kept.append(s)
+            else:
+                rejected.append(s)
+        rejected_initials = {"".join(t[0] for t in _tokens(r)) for r in rejected}
+        for a in acronyms:
+            (rejected if a.lower() in rejected_initials else kept).append(a)
+        return kept, rejected
+
     def _expand_terms(self, target: str, disease: str) -> Tuple[List[str], List[str]]:
         """Target synonyms come from NCBI Gene (curated); disease synonyms from one LLM call.
         Both fall back to the original term if nothing usable is returned (e.g. in mock mode)."""
@@ -1152,8 +1181,13 @@ Return ONLY valid JSON in exactly this format:
                     break
             return terms
 
+        suggested = result.get("disease_synonyms")
+        kept, rejected = self._filter_disease_synonyms(disease, suggested if isinstance(suggested, list) else [])
+        if rejected:
+            logger.info(f"  Rejected disease synonyms (broader/unrelated): {rejected}")
+
         target_terms = _clean(self._gene_synonyms(target), target)
-        disease_terms = _clean(result.get("disease_synonyms"), disease)
+        disease_terms = _clean(kept, disease)
         logger.info(f"  LiteratureAgent search terms: target={target_terms} disease={disease_terms}")
         return target_terms, disease_terms
 
