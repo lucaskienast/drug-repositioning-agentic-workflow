@@ -611,9 +611,10 @@ for _mock_fn in (get_mock_chembl, get_mock_ot, get_mock_faers, get_mock_fda_labe
 logger.setLevel(logging.INFO)
 
 # 4) In live mode the ChEMBL client logs every request/page/header at INFO and
-#    httpx logs every OpenAI request (~500 lines per run), burying the workflow
-#    output. Keep their warnings and errors only.
-for _noisy_logger in ("chembl_webresource_client", "httpx"):
+#    the OpenAI SDK's HTTP client logs every request (~500 lines per run), burying
+#    the workflow output. Keep their warnings and errors only. The OpenAI client
+#    logs via "httpx" in older SDK versions and via "httpx2" in newer ones.
+for _noisy_logger in ("chembl_webresource_client", "httpx", "httpx2"):
     logging.getLogger(_noisy_logger).setLevel(logging.WARNING)
 
 
