@@ -1715,27 +1715,87 @@ Response rules:
         # =====================================================================
         # TODO 9: Write prompt and apply adjustments
         # =====================================================================
-        prompt = f"""
-        # YOUR PROMPT HERE
-        # Provide the critique
-        # Request JSON array of adjustments
-        # Specify adjustment range [-2, +2]
+        components = "|".join(self.WEIGHTS.keys())
+        current = "\n".join(
+            f"{i + 1}. {c.name}: total={c.total_score:.2f}; "
+            + ", ".join(f"{k}={v:.1f}" for k, v in c.scores.items())
+            for i, c in enumerate(candidates)
+        )
 
-        CRITIQUE:
-        {critique}
-        """
+        # Wording avoids the evaluator prompt's mock-dispatch keywords so that
+        # mock mode routes this prompt to the "adjustments" response.
+        prompt = f"""Suggest score adjustments for drug repurposing candidates based on reviewer feedback.
+
+REVIEWER FEEDBACK:
+{critique}
+
+CURRENT CANDIDATE ORDER AND COMPONENT SCORES (each component 0-10):
+{current}
+
+Rules:
+- Only address problems raised in the feedback; make the smallest changes that fix them.
+- "drug_name" must exactly match a candidate name listed above.
+- "component" must be one of: {components}
+- "adjustment" is a number between -2 and +2 (non-zero).
+- If no change is needed, return an empty array: []
+
+Return ONLY a JSON array in exactly this format:
+[
+  {{"drug_name": "<name>", "component": "<component>", "adjustment": <number>, "reason": "<brief justification>"}}
+]"""
 
         adjustments = self._call_llm_json(prompt, [])
-        if type(adjustments) == dict:
-            adjustments = [adjustments]
+        if isinstance(adjustments, dict):
+            # Accept {"adjustments": [...]} as well as a single adjustment object
+            inner = adjustments.get("adjustments")
+            adjustments = inner if isinstance(inner, list) else [adjustments]
+        if not isinstance(adjustments, list):
+            adjustments = []
         applied = []
 
-        # Build lookup for finding candidates by name
-        # lookup = ...
+        # Build lookup for finding candidates by name (exact, normalized, synonyms)
+        lookup: Dict[str, DrugCandidate] = {}
+        for c in candidates:
+            for key in [c.name, c.normalized_name, *c.synonyms]:
+                if key:
+                    lookup.setdefault(key.lower().strip(), c)
+                    lookup.setdefault(normalize_drug_name(key), c)
 
         # Apply each adjustment
-        # for adj in adjustments:
-        #     Find candidate, validate, apply, track...
+        for adj in adjustments:
+            if not isinstance(adj, dict):
+                continue
+            drug_name = str(adj.get("drug_name", "")).strip()
+            cand = lookup.get(drug_name.lower()) or lookup.get(normalize_drug_name(drug_name))
+            component = str(adj.get("component", "")).strip().lower()
+            if cand is None or component not in self.WEIGHTS:
+                logger.info(f"  Skipping invalid adjustment: {adj}")
+                continue
+            try:
+                delta = float(adj.get("adjustment", 0))
+            except (TypeError, ValueError):
+                logger.info(f"  Skipping non-numeric adjustment: {adj}")
+                continue
+            delta = max(-2.0, min(2.0, delta))
+            if delta == 0:
+                continue
+
+            old_component = cand.scores.get(component, 0.0)
+            old_total = cand.total_score
+            new_component = max(0.0, min(10.0, old_component + delta))
+            cand.scores[component] = new_component
+            cand.total_score = self._weighted_total(cand.scores)
+
+            applied.append({
+                "drug": cand.name,
+                "component": component,
+                "adjustment": delta,
+                "reason": str(adj.get("reason", "")),
+                "old_component_score": old_component,
+                "new_component_score": new_component,
+                "old_total": round(old_total, 4),
+                "new_total": round(cand.total_score, 4),
+            })
 
         # Re-sort
         candidates.sort(key=lambda c: c.total_score, reverse=True)
