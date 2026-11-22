@@ -1,0 +1,57 @@
+# ---------------------------------------------------------------------------
+# Environment / secrets (dotenv files, incl. entrez.env read by ls_action_space)
+# ---------------------------------------------------------------------------
+.env
+.env.*
+*.env
+!.env.example
+
+# ---------------------------------------------------------------------------
+# Python
+# ---------------------------------------------------------------------------
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+build/
+dist/
+*.egg-info/
+.eggs/
+
+# Virtual environments
+.venv/
+venv/
+env/
+ENV/
+
+# Test / tooling caches
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.coverage
+htmlcov/
+.ipynb_checkpoints/
+
+# ---------------------------------------------------------------------------
+# Project runtime
+# ---------------------------------------------------------------------------
+# API response cache written by scaffold.py (CACHE_DIR, default ./cache)
+cache/
+*.log
+# NOTE: candidates_*.csv and audit_*.json are submission artifacts - not ignored.
+
+# ---------------------------------------------------------------------------
+# IDE / editor specific files
+# ---------------------------------------------------------------------------
+.idea/
+.vscode/
+*.iml
+*.swp
+*.swo
+*~
+
+# ---------------------------------------------------------------------------
+# OS files
+# ---------------------------------------------------------------------------
+.DS_Store
+Thumbs.db
