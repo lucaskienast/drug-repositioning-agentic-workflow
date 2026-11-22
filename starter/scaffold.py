@@ -610,6 +610,12 @@ for _mock_fn in (get_mock_chembl, get_mock_ot, get_mock_faers, get_mock_fda_labe
 #    agents' INFO progress logs are hidden. Set the level on our logger directly.
 logger.setLevel(logging.INFO)
 
+# 4) In live mode the ChEMBL client logs every request/page/header at INFO and
+#    httpx logs every OpenAI request (~500 lines per run), burying the workflow
+#    output. Keep their warnings and errors only.
+for _noisy_logger in ("chembl_webresource_client", "httpx"):
+    logging.getLogger(_noisy_logger).setLevel(logging.WARNING)
+
 
 class ActionPlanningAgent(BaseAgent):
     """
