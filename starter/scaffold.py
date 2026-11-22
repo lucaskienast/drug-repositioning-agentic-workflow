@@ -1635,15 +1635,40 @@ class EvaluationAgent(BaseAgent):
         # =====================================================================
         # TODO 8: Write your critique prompt here
         # =====================================================================
-        prompt = f"""
-        # YOUR PROMPT HERE
-        # Include: target, disease, current rankings (summary)
-        # Ask for evaluation of whether rankings are reasonable
-        # Specify: respond "Rankings are appropriate" if good
+        components = "\n".join(
+            f"{i + 1}. {c.name}: " + ", ".join(f"{k}={v:.1f}" for k, v in c.scores.items())
+            for i, c in enumerate(top)
+        )
+        weights = ", ".join(f"{k} {w:.0%}" for k, w in self.WEIGHTS.items())
 
-        CURRENT RANKINGS:
-        {summary}
-        """
+        prompt = f"""Critique the current ranking of drug repurposing candidates.
+
+CONTEXT
+- Target gene: {target}
+- Disease: {disease}
+- Total score = weighted sum of 0-10 component scores: {weights}
+
+CURRENT RANKINGS (Score 0-10, higher is better):
+{summary}
+
+COMPONENT SCORES:
+{components}
+
+Evaluate whether this order is scientifically reasonable and well-balanced for repurposing
+toward {disease} via {target}. Look specifically for:
+- a candidate ranked too high despite serious safety flags (BOXED_WARNING, HIGH_SERIOUS_RATIO)
+  or no literature support;
+- a candidate ranked too low despite strong binding (pChEMBL >= 8), relevant literature or an
+  advanced clinical phase;
+- a component score that does not match the evidence shown, or over-reliance on one factor.
+
+Response rules:
+- If the order is reasonable, respond with exactly: Rankings are appropriate
+  (that phrase only, nothing else).
+- Otherwise do NOT use that phrase. List each specific problem as one line:
+  <drug name> - <component> - should go up/down - <short reason>
+  where <component> is one of: target_binding, literature_support, safety_profile,
+  development_stage, disease_relevance."""
 
         return self._call_llm(prompt)
         # =====================================================================
