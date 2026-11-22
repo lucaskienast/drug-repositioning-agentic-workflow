@@ -804,10 +804,15 @@ CANDIDATE
 - Binding potency on {target} (pChEMBL): {pchembl}
 - Known indications: {indications}
 
+Note: a measured pChEMBL value on {target} is direct experimental evidence that the compound
+engages {target}, even when the MOA field above is "Unknown".
+
 Choose ONE literature_strategy (how to search PubMed):
 - "target_focused":  MOA is known -> search for the drug together with {target}.
-- "disease_focused": MOA is unknown/unclear -> search for the drug together with {disease}.
-- "broad_search":    early-stage or sparsely studied compound with unknown MOA -> search both.
+- "broad_search":    MOA unknown but measured binding on {target}, or an early-stage / sparsely
+                     studied compound -> search the drug with {target} AND with {disease}.
+- "disease_focused": MOA unknown/unclear and no binding data on {target} -> search the drug
+                     together with {disease}.
 
 Choose ONE safety_strategy (how deep the safety review goes):
 - "comprehensive": phase 3-4 drugs -> FDA label boxed warnings + FAERS (substantial human data exists).
@@ -817,7 +822,8 @@ Choose ONE safety_strategy (how deep the safety review goes):
 Guidelines:
 - Phase 3-4 drugs: use "comprehensive" safety and prefer "target_focused" literature.
 - Phase 0-2 drugs: use a lighter safety strategy ("faers_only" or "basic").
-- Unknown MOA: prefer "disease_focused", or "broad_search" if the compound is preclinical.
+- Unknown MOA: prefer "broad_search" when there is measured binding on {target} (so target
+  engagement evidence is not missed); otherwise "disease_focused".
 - Base the decision only on the candidate data above.
 
 Return ONLY valid JSON in exactly this format:
@@ -833,6 +839,8 @@ Return ONLY valid JSON in exactly this format:
         moa_known = bool(candidate.mechanism_of_action)
         if moa_known:
             rule_lit = "target_focused"
+        elif candidate.pchembl_value and candidate.pchembl_value > 0:
+            rule_lit = "broad_search"      # measured target engagement -> search target + disease
         elif candidate.max_phase >= 1:
             rule_lit = "disease_focused"
         else:
