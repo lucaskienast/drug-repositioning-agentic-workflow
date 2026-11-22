@@ -1,0 +1,6 @@
+rank,name,chembl_id,is_enriched,total_score,pchembl_value,max_phase,literature_support,safety_flags,routing_literature,routing_safety
+1,ROLUPERIDONE,CHEMBL4297605,True,6.0,8.09,3,weak,,broad_search,faers_only
+2,SIRAMESINE,CHEMBL61479,True,5.86,9.92,2,weak,,broad_search,faers_only
+3,PITOLISANT HYDROCHLORIDE,CHEMBL4164059,True,5.26,8.15,4,none,HIGH_SERIOUS_RATIO,broad_search,comprehensive
+4,NEMONAPRIDE,CHEMBL20734,True,4.98,8.14,2,none,,broad_search,faers_only
+5,SPIPETHIANE,CHEMBL39900,True,4.26,8.19,0,none,,broad_search,basic

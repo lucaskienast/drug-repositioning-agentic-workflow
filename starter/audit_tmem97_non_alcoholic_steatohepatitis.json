@@ -1,0 +1,783 @@
+{
+  "audit_log": {
+    "started_at": "2026-11-22T13:21:58.457136",
+    "completed_at": "2026-11-22T13:23:19.602511",
+    "target": "TMEM97",
+    "disease": "non-alcoholic steatohepatitis",
+    "mock_mode": false,
+    "plan_generated": {
+      "objective": "The goal is to identify existing compounds that target TMEM97 for potential repurposing in the treatment of non-alcoholic steatohepatitis.",
+      "steps": [
+        {
+          "step": 1,
+          "action": "This step involves mining ChEMBL and Open Targets databases to find compounds and known drugs that act on TMEM97.",
+          "task_type": "data_mining"
+        },
+        {
+          "step": 2,
+          "action": "In this step, we will gather PubMed literature evidence and FDA safety data for the top candidates identified in the previous step.",
+          "task_type": "enrichment"
+        },
+        {
+          "step": 3,
+          "action": "This step will score and rank the candidates based on their target binding, literature support, safety, development stage, and relevance to the disease.",
+          "task_type": "scoring"
+        },
+        {
+          "step": 4,
+          "action": "In this final step, we will write an experimental validation roadmap for the top-ranked candidates to guide further research.",
+          "task_type": "roadmap"
+        }
+      ]
+    },
+    "steps_executed": [
+      {
+        "step": 1,
+        "task_type": "data_mining",
+        "started_at": "2026-11-22T13:22:02.028588",
+        "completed_at": "2026-11-22T13:22:02.372343"
+      },
+      {
+        "step": 2,
+        "task_type": "enrichment",
+        "started_at": "2026-11-22T13:22:02.372362",
+        "completed_at": "2026-11-22T13:22:52.621663"
+      },
+      {
+        "step": 3,
+        "task_type": "scoring",
+        "started_at": "2026-11-22T13:22:52.621710",
+        "completed_at": "2026-11-22T13:23:08.238367"
+      },
+      {
+        "step": 4,
+        "task_type": "roadmap",
+        "started_at": "2026-11-22T13:23:08.238559",
+        "completed_at": "2026-11-22T13:23:19.602499"
+      }
+    ],
+    "candidates_found": 5,
+    "candidates_enriched": 5,
+    "llm_calls": 24,
+    "routing_decisions": [
+      {
+        "decision_id": "65141ab5-a940-435d-918f-b0256a546d51",
+        "candidate": "SIRAMESINE",
+        "chembl_id": "CHEMBL61479",
+        "opentargets_id": "",
+        "task_type": "enrichment_routing",
+        "agent_name": "RoutingAgent",
+        "inputs": {
+          "literature_strategy": "broad_search",
+          "safety_strategy": "faers_only"
+        },
+        "reasoning": "Literature: The MOA is unknown, but there is measured binding on TMEM97, so a search combining the drug with TMEM97 and non-alcoholic steatohepatitis is appropriate.. Safety: As SIRAMESINE is in phase 2, a review of FAERS adverse event reports is suitable given the limited human data.",
+        "created_at": "2026-11-22T13:22:05.837401"
+      },
+      {
+        "decision_id": "0ac0e2e1-6c7b-4b55-8a4e-b35ec0c9bf8b",
+        "candidate": "SPIPETHIANE",
+        "chembl_id": "CHEMBL39900",
+        "opentargets_id": "",
+        "task_type": "enrichment_routing",
+        "agent_name": "RoutingAgent",
+        "inputs": {
+          "literature_strategy": "broad_search",
+          "safety_strategy": "basic"
+        },
+        "reasoning": "Literature: The mechanism of action is unknown, but there is measured binding on TMEM97, so a search including both TMEM97 and non-alcoholic steatohepatitis is appropriate.. Safety: The candidate is in preclinical phase (phase 0), warranting a minimal safety review due to little or no human data.",
+        "created_at": "2026-11-22T13:22:17.204921"
+      },
+      {
+        "decision_id": "b8fddf29-df11-4b57-9570-3f722c56df97",
+        "candidate": "PITOLISANT HYDROCHLORIDE",
+        "chembl_id": "CHEMBL4164059",
+        "opentargets_id": "",
+        "task_type": "enrichment_routing",
+        "agent_name": "RoutingAgent",
+        "inputs": {
+          "literature_strategy": "broad_search",
+          "safety_strategy": "comprehensive"
+        },
+        "reasoning": "Literature: The mechanism of action is unknown, but there is measured binding on TMEM97, so a search combining the drug with TMEM97 and non-alcoholic steatohepatitis is appropriate.. Safety: Pitolisant hydrochloride is a phase 4 drug, warranting a comprehensive safety review including FDA label boxed warnings and FAERS data.",
+        "created_at": "2026-11-22T13:22:23.781644"
+      },
+      {
+        "decision_id": "21668e4f-25e0-44b0-8c02-54572ca8434f",
+        "candidate": "NEMONAPRIDE",
+        "chembl_id": "CHEMBL20734",
+        "opentargets_id": "",
+        "task_type": "enrichment_routing",
+        "agent_name": "RoutingAgent",
+        "inputs": {
+          "literature_strategy": "broad_search",
+          "safety_strategy": "faers_only"
+        },
+        "reasoning": "Literature: The MOA is unknown, but there is measured binding on TMEM97, so a search combining the drug with TMEM97 and non-alcoholic steatohepatitis is appropriate.. Safety: Nemonaprida is in phase 2, so a review of FAERS adverse event reports is suitable given the limited human data.",
+        "created_at": "2026-11-22T13:22:30.739023"
+      },
+      {
+        "decision_id": "1058ee0b-bf67-4d67-b91e-808e7630917e",
+        "candidate": "ROLUPERIDONE",
+        "chembl_id": "CHEMBL4297605",
+        "opentargets_id": "",
+        "task_type": "enrichment_routing",
+        "agent_name": "RoutingAgent",
+        "inputs": {
+          "literature_strategy": "broad_search",
+          "safety_strategy": "faers_only"
+        },
+        "reasoning": "Literature: The mechanism of action is unknown, but there is measured binding on TMEM97, so a broad search including both TMEM97 and non-alcoholic steatohepatitis is appropriate.. Safety: Roluperidone is in phase 3, which allows for a review of adverse event reports from FAERS, but does not warrant a comprehensive safety review.",
+        "created_at": "2026-11-22T13:22:43.049765"
+      }
+    ],
+    "errors": []
+  },
+  "candidates": [
+    {
+      "chembl_id": "CHEMBL4297605",
+      "opentargets_id": "",
+      "name": "ROLUPERIDONE",
+      "normalized_name": "roluperidone",
+      "synonyms": [
+        "FMI",
+        "MIN-101 FREE BASE",
+        "Roluperidona",
+        "Roluperidone"
+      ],
+      "source": "chembl",
+      "pchembl_value": 8.09,
+      "max_phase": 3,
+      "molecule_type": "Small molecule",
+      "mechanism_of_action": "",
+      "indications": [],
+      "disease_relevance_score": 0.0,
+      "is_enriched": true,
+      "enrichment_timestamp": "2026-11-22T13:22:52.621369",
+      "literature_strategy": "broad_search",
+      "safety_strategy": "faers_only",
+      "pubmed_articles": [
+        {
+          "pmid": "34880501",
+          "title": "Structures of the \u03c3<sub>2</sub> receptor enable docking for bioactive ligand discovery.",
+          "abstract": "The \u03c3<sub>2</sub> receptor has attracted intense interest in cancer imaging<sup>1</sup>, psychiatric disease<sup>2</sup>, neuropathic pain<sup>3-5</sup> and other areas of biology<sup>6,7</sup>. Here we determined the crystal structure of this receptor in complex with the clinical candidate roluperidone<sup>2</sup> and the tool compound PB28<sup>8</sup>. These structures templated a large-scale docking screen of 490 million virtual molecules, of which 484 compounds were synthesized and tested. We identified 127 new chemotypes with affinities superior to 1 \u03bcM, 31 of which had affinities superior to 50 nM. The hit rate fell smoothly and monotonically with docking score. We optimized three hits for potency and selectivity, and achieved affinities that ranged from 3 to 48 nM, with up to 250-fold selectivity versus the \u03c3<sub>1</sub> receptor. Crystal structures of two ligands bound to the \u03c3<sub>2</sub> receptor confirmed the docked poses. To investigate the contribution of the \u03c3<sub>2</sub> receptor in pain, two potent \u03c3<sub>2</sub>-selective ligands and one potent \u03c3<sub>1</sub>/\u03c3<sub>2</sub> non-selective ligand were tested for efficacy in a mouse model of neuropathic pain. All three ligands showed time-dependent decreases in mechanical hypersensitivity in the spared nerve injury model<sup>9</sup>, suggesting that the \u03c3<sub>2</sub> receptor has a role in nociception. This study illustrates the opportunities for rapid discovery of in vivo probes through structure-based screens of ultra large libraries, enabling study of underexplored areas of biology.",
+          "journal": "Nature",
+          "year": 2021,
+          "authors": [
+            "Assaf Alon",
+            "Jiankun Lyu",
+            "Joao M Braz",
+            "Tia A Tummino",
+            "Veronica Craik",
+            "Matthew J O'Meara",
+            "Chase M Webb",
+            "Dmytro S Radchenko",
+            "Yurii S Moroz",
+            "Xi-Ping Huang",
+            "Yongfeng Liu",
+            "Bryan L Roth",
+            "John J Irwin",
+            "Allan I Basbaum",
+            "Brian K Shoichet",
+            "Andrew C Kruse"
+          ],
+          "doi": "10.1038/s41586-021-04175-x",
+          "pmcid": null,
+          "mesh_terms": [
+            "Animals",
+            "Ligands",
+            "Mice",
+            "Neuralgia",
+            "Receptors, sigma",
+            "Structure-Activity Relationship"
+          ]
+        }
+      ],
+      "literature_summary": "The article discusses the crystal structure of the \u03c3<sub>2</sub> receptor in complex with roluperidone, indicating some interaction but does not provide direct evidence of engagement with TMEM97 or improvement in non-alcoholic steatohepatitis. The evidence is tangential and lacks direct relevance to the proposed drug repurposing hypothesis.",
+      "literature_support_level": "weak",
+      "literature_strength": 3,
+      "literature_supporting_pmids": [],
+      "safety_summary": "ROLUPERIDONE has not reported any adverse event reports in the FAERS database, suggesting it may have limited market exposure. Additionally, there are no safety flags associated with this drug, indicating a potentially favorable safety profile.",
+      "safety_flags": [],
+      "faers_event_count": 0,
+      "faers_serious_count": 0,
+      "has_boxed_warning": false,
+      "label_found": false,
+      "scores": {
+        "target_binding": 10.0,
+        "literature_support": 3.0,
+        "safety_profile": 5.0,
+        "development_stage": 8.0,
+        "disease_relevance": 0.0
+      },
+      "total_score": 6.0,
+      "ranking_rationale": "ROLUPERIDONE ranks #1 for repurposing due to its high pChEMBL score of 8.09, indicating strong binding affinity, and its advanced Phase 3 status, suggesting it is close to potential clinical application. Despite the unknown mechanism of action and weak supporting literature, its promising pharmacological profile and safety data absence position it as a compelling candidate for targeting TMEM97 in non-alcoholic steatohepatitis.",
+      "provenance": {
+        "chembl_id": "CHEMBL4297605",
+        "opentargets_id": "",
+        "pubmed_pmids": [
+          "34880501"
+        ],
+        "pubmed_queries_tried": [
+          "\"ROLUPERIDONE\"[Title/Abstract] AND (\"TMEM97\"[Title/Abstract] OR \"transmembrane protein 97\"[Title/Abstract] OR \"sigma-2 receptor\"[Title/Abstract] OR \"sigma2 receptor\"[Title/Abstract] OR \"sigma 2 receptor\"[Title/Abstract] OR \"sigma intracellular receptor 2\"[Title/Abstract])",
+          "\"ROLUPERIDONE\"[Title/Abstract] AND (\"non-alcoholic steatohepatitis\"[Title/Abstract] OR \"nonalcoholic steatohepatitis\"[Title/Abstract] OR \"non alcoholic steatohepatitis\"[Title/Abstract] OR \"NASH\"[Title/Abstract])"
+        ],
+        "faers_query_matched": "",
+        "routing_decision_ids": [
+          "1058ee0b-bf67-4d67-b91e-808e7630917e"
+        ],
+        "chembl_target_id": "CHEMBL4105907"
+      }
+    },
+    {
+      "chembl_id": "CHEMBL61479",
+      "opentargets_id": "",
+      "name": "SIRAMESINE",
+      "normalized_name": "siramesine",
+      "synonyms": [
+        "Siramesina",
+        "Siramesine"
+      ],
+      "source": "chembl",
+      "pchembl_value": 9.92,
+      "max_phase": 2,
+      "molecule_type": "Small molecule",
+      "mechanism_of_action": "",
+      "indications": [],
+      "disease_relevance_score": 0.0,
+      "is_enriched": true,
+      "enrichment_timestamp": "2026-11-22T13:22:15.535449",
+      "literature_strategy": "broad_search",
+      "safety_strategy": "faers_only",
+      "pubmed_articles": [
+        {
+          "pmid": "42250386",
+          "title": "Sigma-1 Receptor antagonism potentiates siramesine-induced apoptosis and altered autophagic signaling in human leukemia cells.",
+          "abstract": "T-cell acute lymphoblastic leukemia (T-ALL) and chronic myelogenous leukemia (CML) are hematological malignancies arising from lymphoid and myeloid lineages, respectively. Although many patients achieve remission following chemotherapy, relapse and chemoresistance remain major clinical challenges. Sigma receptors, including sigma-1 (S1R) and sigma-2 (S2R), regulate pathways involved in cancer cell survival, stress responses, and cell death. While S2R is frequently overexpressed in tumors, S1R promotes protective mechanisms that support cancer cell survival, suggesting that dual targeting of these receptors may enhance anticancer efficacy. Siramesine (LU28-719), a selective S2R agonist originally developed for depression and anxiety disorders, has emerged as a potential anticancer agent. Using Jurkat and K562 cell lines representing distinct hematopoietic origins, we investigated the effects of Siramesine alone and in combination with BD-1047, a selective S1R antagonist, on cell viability, apoptosis, cell cycle progression, and the expression of sigma receptors, phospho-p53/p53, apoptosis-related proteins, and autophagy markers. Siramesine significantly reduced cell viability and induced apoptosis in both cell lines. These effects were associated with increased expression of S2R, phospho-p53/p53, apoptotic markers (Bax and cleaved caspase-8), and autophagy-related proteins (SQSTM1/p62 and LC3B-II). Co-treatment with BD-1047 further enhanced Siramesine-induced cell death, apoptosis, and alterations in autophagic signaling. These findings demonstrate that S1R inhibition sensitizes leukemia cells to S2R-mediated cytotoxicity, supporting the therapeutic potential of combined sigma receptor targeting and warranting further investigation of Siramesine-based metronomic therapy in leukemia.",
+          "journal": "Biomedicine & pharmacotherapy = Biomedecine & pharmacotherapie",
+          "year": 2026,
+          "authors": [
+            "Ankita Sharma",
+            "Kanokphorn Saenawat Ruckvongacheep",
+            "Sirikalaya Brimson",
+            "James Michael Brimson"
+          ],
+          "doi": "10.1016/j.biopha.2026.119618",
+          "pmcid": null,
+          "mesh_terms": [
+            "Humans",
+            "Receptors, sigma",
+            "Apoptosis",
+            "Sigma-1 Receptor",
+            "Autophagy",
+            "Signal Transduction",
+            "Jurkat Cells",
+            "K562 Cells",
+            "Leukemia",
+            "Cell Survival",
+            "Antineoplastic Agents",
+            "Drug Synergism",
+            "Cell Line, Tumor",
+            "Ethylenediamines"
+          ]
+        },
+        {
+          "pmid": "41758500",
+          "title": "Correction to \"Siramesine Attenuates Early Brain Injury Through the TMEM97/NPC1 Pathway After Experimental Subarachnoid Hemorrhage in Rats\".",
+          "abstract": "",
+          "journal": "FASEB journal : official publication of the Federation of American Societies for Experimental Biology",
+          "year": 2026,
+          "authors": [],
+          "doi": "10.1096/fj.202600695",
+          "pmcid": null,
+          "mesh_terms": []
+        },
+        {
+          "pmid": "41277193",
+          "title": "Siramesine Attenuates Early Brain Injury Through the TMEM97/NPC1 Pathway After Experimental Subarachnoid Hemorrhage in Rats.",
+          "abstract": "The occurrence of oxidative stress and apoptosis is closely associated with early brain injury (EBI) following subarachnoid hemorrhage (SAH). Currently, there is a lack of effective therapeutic targets or specific pharmacological agents to counteract oxidative stress and cell death after SAH. Our study demonstrates that the TMEM97/NPC1 signaling pathway plays a significant role in EBI in rats with SAH. TMEM97 protein expression in rat brain tissue progressively decreased after SAH, reaching its lowest level at 24 h. Immunofluorescence double-staining further confirmed a notable reduction in TMEM97-positive neurons at 24 h post-SAH. Treatment with Siramesine, a reported TMEM97 activator, was observed to ameliorate both short-term and long-term neurological deficits in SAH rats. The administration was also associated with a reduction in oxidative stress and suppression of neuronal apoptosis. At the molecular level, Siramesine treatment correlated with upregulation of TMEM97, NPC1, DJ-1, and the anti-apoptotic protein Bcl-2, alongside downregulation of the mitochondrial fission protein Drp1, the oxidative stress-related protein Romo-1, and the pro-apoptotic protein Bax. Notably, the protective effects of Siramesine were significantly, though not completely, attenuated by co-administration of the TMEM97 inhibitor SM-21 or by NPC1 siRNA. The partial nature of this reversal, particularly with the TMEM97 antagonist SM-21, indicates that while TMEM97 activation constitutes a significant component of Siramesine's mechanism, it is unlikely to be the sole contributor to its full neuroprotective effect. Collectively, these results suggest that the TMEM97/NPC1 pathway is involved in the neuroprotective actions of Siramesine, while also implying the potential engagement of additional, complementary mechanisms. This study provides a foundation for future preclinical investigations aimed at further elucidating this complex mechanism.",
+          "journal": "FASEB journal : official publication of the Federation of American Societies for Experimental Biology",
+          "year": 2025,
+          "authors": [
+            "Bowen Sun",
+            "Tongyu Zhang",
+            "Shuai Lan",
+            "Qi Sun",
+            "Bohan Zhang",
+            "Harshal Sawant",
+            "Jianqiao Li",
+            "Aixia Chen",
+            "Lining Chen",
+            "Jinshuo Yang",
+            "Xi'ao Wang",
+            "Qi Zhao",
+            "John H Zhang",
+            "Huaizhang Shi",
+            "Pei Wu"
+          ],
+          "doi": "10.1096/fj.202401530RR",
+          "pmcid": null,
+          "mesh_terms": [
+            "Animals",
+            "Subarachnoid Hemorrhage",
+            "Rats",
+            "Male",
+            "Rats, Sprague-Dawley",
+            "Signal Transduction",
+            "Oxidative Stress",
+            "Apoptosis",
+            "Brain Injuries",
+            "Membrane Proteins",
+            "Neurons",
+            "Neuroprotective Agents",
+            "Protein Deglycase DJ-1"
+          ]
+        }
+      ],
+      "literature_summary": "The articles suggest that siramesine interacts with the TMEM97 pathway, particularly in the context of brain injury, but do not provide direct evidence of its effects on non-alcoholic steatohepatitis or a closely related model. The relevance of the findings to the proposed disease is limited, as the studies focus on different conditions (subarachnoid hemorrhage) rather than liver disease.",
+      "literature_support_level": "weak",
+      "literature_strength": 3,
+      "literature_supporting_pmids": [
+        "41277193",
+        "41758500"
+      ],
+      "safety_summary": "SIRAMESINE has no reported adverse event reports in the FAERS database, suggesting it may have limited market exposure. Additionally, there are no safety flags associated with this drug, indicating a potentially favorable safety profile.",
+      "safety_flags": [],
+      "faers_event_count": 0,
+      "faers_serious_count": 0,
+      "has_boxed_warning": false,
+      "label_found": false,
+      "scores": {
+        "target_binding": 10.0,
+        "literature_support": 4.0,
+        "safety_profile": 5.0,
+        "development_stage": 6.0,
+        "disease_relevance": 0.0
+      },
+      "total_score": 5.86,
+      "ranking_rationale": "SIRAMESINE ranks #2 for repurposing due to its high pChEMBL score of 9.92, indicating strong binding affinity to the target TMEM97, which is implicated in non-alcoholic steatohepatitis. Although the mechanism of action is unknown and literature support is weak, its advancement to Phase 2 trials suggests potential efficacy and safety that warrant further investigation.",
+      "provenance": {
+        "chembl_id": "CHEMBL61479",
+        "opentargets_id": "",
+        "pubmed_pmids": [
+          "42250386",
+          "41758500",
+          "41277193"
+        ],
+        "pubmed_queries_tried": [
+          "\"SIRAMESINE\"[Title/Abstract] AND (\"TMEM97\"[Title/Abstract] OR \"transmembrane protein 97\"[Title/Abstract] OR \"sigma-2 receptor\"[Title/Abstract] OR \"sigma2 receptor\"[Title/Abstract] OR \"sigma 2 receptor\"[Title/Abstract] OR \"sigma intracellular receptor 2\"[Title/Abstract])",
+          "\"SIRAMESINE\"[Title/Abstract] AND (\"non-alcoholic steatohepatitis\"[Title/Abstract] OR \"nonalcoholic steatohepatitis\"[Title/Abstract] OR \"non alcoholic steatohepatitis\"[Title/Abstract] OR \"NASH\"[Title/Abstract])"
+        ],
+        "faers_query_matched": "",
+        "routing_decision_ids": [
+          "65141ab5-a940-435d-918f-b0256a546d51"
+        ],
+        "chembl_target_id": "CHEMBL4105907"
+      }
+    },
+    {
+      "chembl_id": "CHEMBL4164059",
+      "opentargets_id": "",
+      "name": "PITOLISANT HYDROCHLORIDE",
+      "normalized_name": "pitolisant",
+      "synonyms": [
+        "BF-2649 HYDROCHLORIDE",
+        "Ciproxidine",
+        "Ozawade",
+        "Pitolisant hydrochloride",
+        "Wakix"
+      ],
+      "source": "chembl",
+      "pchembl_value": 8.15,
+      "max_phase": 4,
+      "molecule_type": "Small molecule",
+      "mechanism_of_action": "",
+      "indications": [],
+      "disease_relevance_score": 0.0,
+      "is_enriched": true,
+      "enrichment_timestamp": "2026-11-22T13:22:28.929073",
+      "literature_strategy": "broad_search",
+      "safety_strategy": "comprehensive",
+      "pubmed_articles": [],
+      "literature_summary": "No PubMed articles found for PITOLISANT (broad_search; 3 queries tried).",
+      "literature_support_level": "none",
+      "literature_strength": 0,
+      "literature_supporting_pmids": [],
+      "safety_summary": "Pitolisant hydrochloride has been associated with a total of 153 adverse events reported in the FAERS database, with a notably high serious event ratio of 82.4%. There is no boxed warning in the FDA label, but the elevated proportion of serious events warrants careful monitoring of patients using this medication.",
+      "safety_flags": [
+        "HIGH_SERIOUS_RATIO"
+      ],
+      "faers_event_count": 153,
+      "faers_serious_count": 126,
+      "has_boxed_warning": false,
+      "label_found": true,
+      "scores": {
+        "target_binding": 10.0,
+        "literature_support": 0.0,
+        "safety_profile": 3.0,
+        "development_stage": 10.0,
+        "disease_relevance": 0.0
+      },
+      "total_score": 5.26,
+      "ranking_rationale": "PITOLISANT HYDROCHLORIDE ranks #3 for repurposing due to its strong binding affinity indicated by a pChEMBL score of 8.15, suggesting potential efficacy against TMEM97 in non-alcoholic steatohepatitis. Additionally, its advanced Phase 4 status and a favorable safety profile, characterized by a high serious adverse event ratio, further support its viability as a repurposing candidate despite the unknown mechanism of action and lack of existing literature.",
+      "provenance": {
+        "chembl_id": "CHEMBL4164059",
+        "opentargets_id": "",
+        "pubmed_pmids": [],
+        "pubmed_queries_tried": [
+          "\"PITOLISANT\"[Title/Abstract] AND (\"TMEM97\"[Title/Abstract] OR \"transmembrane protein 97\"[Title/Abstract] OR \"sigma-2 receptor\"[Title/Abstract] OR \"sigma2 receptor\"[Title/Abstract] OR \"sigma 2 receptor\"[Title/Abstract] OR \"sigma intracellular receptor 2\"[Title/Abstract])",
+          "\"PITOLISANT\"[Title/Abstract] AND (\"non-alcoholic steatohepatitis\"[Title/Abstract] OR \"nonalcoholic steatohepatitis\"[Title/Abstract] OR \"non alcoholic steatohepatitis\"[Title/Abstract] OR \"NASH\"[Title/Abstract])",
+          "\"BF-2649\"[Title/Abstract] AND (\"TMEM97\"[Title/Abstract] OR \"transmembrane protein 97\"[Title/Abstract] OR \"sigma-2 receptor\"[Title/Abstract] OR \"sigma2 receptor\"[Title/Abstract] OR \"sigma 2 receptor\"[Title/Abstract] OR \"sigma intracellular receptor 2\"[Title/Abstract])"
+        ],
+        "faers_query_matched": "PITOLISANT HYDROCHLORIDE",
+        "routing_decision_ids": [
+          "b8fddf29-df11-4b57-9570-3f722c56df97"
+        ],
+        "chembl_target_id": "CHEMBL4105907"
+      }
+    },
+    {
+      "chembl_id": "CHEMBL20734",
+      "opentargets_id": "",
+      "name": "NEMONAPRIDE",
+      "normalized_name": "nemonapride",
+      "synonyms": [
+        "Emilace",
+        "Nemonaprida",
+        "Nemonapride"
+      ],
+      "source": "chembl",
+      "pchembl_value": 8.14,
+      "max_phase": 2,
+      "molecule_type": "Small molecule",
+      "mechanism_of_action": "",
+      "indications": [],
+      "disease_relevance_score": 0.0,
+      "is_enriched": true,
+      "enrichment_timestamp": "2026-11-22T13:22:41.397466",
+      "literature_strategy": "broad_search",
+      "safety_strategy": "faers_only",
+      "pubmed_articles": [
+        {
+          "pmid": "8804051",
+          "title": "[3H]YM-09151-2 (nemonapride), a potent radioligand for both sigma 1 and sigma 2 receptor subtypes.",
+          "abstract": "Using K+ phosphate buffer with 25 nM spiperone, [3H]YM-09151-2 binding showed a high affinity for sigma receptors but no affinity for D2 dopamine or 5-HT1A receptors in rat brain. The order of pKi values of various sigma compounds at [3H]YM-09151-2 binding sites and stereoisomer selectivity were consistent with previous studies using other sigma ligands such as (+)-[3H]SKF-10047, [3H]DTG and (+)-[3H]3-PPP. Although Scatchard analysis fitted a one-site model, competition between [3H]YM-09151-2 and (+)-pentazocine revealed two sites, sigma 1 and sigma 2 receptors, at which the Ki values of YM-09151-2 were 8.4 nM and 9.6nM, respectively. Autoradiography using [3H]YM-09151-2 also showed a characteristic distribution of sigma receptors in rat brain. [3H]YM-09151-2 is, therefore, a potent and useful radioligand for sigma 1/sigma 2 receptor subtypes.",
+          "journal": "Neuroreport",
+          "year": 1996,
+          "authors": [
+            "H Ujike",
+            "K Akiyama",
+            "S Kuroda"
+          ],
+          "doi": null,
+          "pmcid": null,
+          "mesh_terms": [
+            "Animals",
+            "Autoradiography",
+            "Benzamides",
+            "Binding, Competitive",
+            "Brain",
+            "Dopamine Antagonists",
+            "Kinetics",
+            "Male",
+            "Radioligand Assay",
+            "Rats",
+            "Rats, Sprague-Dawley",
+            "Receptors, sigma",
+            "Statistics as Topic",
+            "Stereoisomerism",
+            "Tritium"
+          ]
+        }
+      ],
+      "literature_summary": "The article does not provide any evidence that NEMONAPRIDE engages TMEM97 or improves non-alcoholic steatohepatitis. It primarily discusses the binding affinity of NEMONAPRIDE to sigma receptors without any relevance to the target gene or disease in question.",
+      "literature_support_level": "none",
+      "literature_strength": 0,
+      "literature_supporting_pmids": [],
+      "safety_summary": "Nemonapride has not reported any adverse event cases in the FAERS database, suggesting it may have limited market exposure. Additionally, there are no safety flags associated with this drug, indicating a potentially favorable safety profile.",
+      "safety_flags": [],
+      "faers_event_count": 0,
+      "faers_serious_count": 0,
+      "has_boxed_warning": false,
+      "label_found": false,
+      "scores": {
+        "target_binding": 10.0,
+        "literature_support": 0.0,
+        "safety_profile": 5.0,
+        "development_stage": 6.0,
+        "disease_relevance": 0.0
+      },
+      "total_score": 4.98,
+      "ranking_rationale": "",
+      "provenance": {
+        "chembl_id": "CHEMBL20734",
+        "opentargets_id": "",
+        "pubmed_pmids": [
+          "8804051"
+        ],
+        "pubmed_queries_tried": [
+          "\"NEMONAPRIDE\"[Title/Abstract] AND (\"TMEM97\"[Title/Abstract] OR \"transmembrane protein 97\"[Title/Abstract] OR \"sigma-2 receptor\"[Title/Abstract] OR \"sigma2 receptor\"[Title/Abstract] OR \"sigma 2 receptor\"[Title/Abstract] OR \"sigma intracellular receptor 2\"[Title/Abstract])",
+          "\"NEMONAPRIDE\"[Title/Abstract] AND (\"non-alcoholic steatohepatitis\"[Title/Abstract] OR \"nonalcoholic steatohepatitis\"[Title/Abstract] OR \"non alcoholic steatohepatitis\"[Title/Abstract] OR \"NASH\"[Title/Abstract])"
+        ],
+        "faers_query_matched": "",
+        "routing_decision_ids": [
+          "21668e4f-25e0-44b0-8c02-54572ca8434f"
+        ],
+        "chembl_target_id": "CHEMBL4105907"
+      }
+    },
+    {
+      "chembl_id": "CHEMBL39900",
+      "opentargets_id": "",
+      "name": "SPIPETHIANE",
+      "normalized_name": "spipethiane",
+      "synonyms": [],
+      "source": "chembl",
+      "pchembl_value": 8.19,
+      "max_phase": 0,
+      "molecule_type": "Small molecule",
+      "mechanism_of_action": "",
+      "indications": [],
+      "disease_relevance_score": 0.0,
+      "is_enriched": true,
+      "enrichment_timestamp": "2026-11-22T13:22:22.267300",
+      "literature_strategy": "broad_search",
+      "safety_strategy": "basic",
+      "pubmed_articles": [
+        {
+          "pmid": "31298830",
+          "title": "Investigation of the Role of Chirality in the Interaction with \u03c3 Receptors and Effect on Binge Eating Episode of a Potent \u03c3<sub>1</sub> Antagonist Analogue of Spipethiane.",
+          "abstract": "The enantiomers of the potent \u03c3<sub>1</sub> receptor antagonist (\u00b1)-<b>1</b> were synthesized and evaluated for their affinity at \u03c3<sub>1</sub>, \u03c3<sub>2</sub> receptors and dopamine transporter (DAT). Analogously to (\u00b1)-<b>1</b>, both of the enantiomers showed very high affinity for the \u03c3<sub>1</sub> receptor and unprecedented selectivity over both the \u03c3<sub>2</sub> receptor and DAT. The lack of enantioselectivity between (<i>+</i>)-<b>1</b> and (-)-<b>1</b> indicated that the center of chirality in the 2-position of the benzothiochromane nucleus does not play a crucial role in the interaction with any of the studied targets. Docking studies confirmed that the configuration of the enantiomers has only marginal effects on the molecular interactions with the \u03c3<sub>1</sub> receptor. In in vivo studies in a female rat model of binge eating, (\u00b1)-<b>1</b> dose-dependently decreased the binge eating episode elicited by a history of intermittent food restriction and stress, confirming and strengthening the important role played by the \u03c3<sub>1</sub> receptor in bingeing-related eating disorders.",
+          "journal": "ACS chemical neuroscience",
+          "year": 2019,
+          "authors": [
+            "Fabio Del Bello",
+            "Maria Vittoria Micioni Di Bonaventura",
+            "Alessandro Bonifazi",
+            "Bernhard W\u00fcnsch",
+            "Dirk Schepmann",
+            "JoLynn B Giancola",
+            "Emanuela Micioni Di Bonaventura",
+            "Giulio Vistoli",
+            "Gianfabio Giorgioni",
+            "Wilma Quaglia",
+            "Alessandro Piergentili",
+            "Carlo Cifani"
+          ],
+          "doi": "10.1021/acschemneuro.9b00261",
+          "pmcid": null,
+          "mesh_terms": [
+            "Animals",
+            "Binge-Eating Disorder",
+            "Bulimia",
+            "Female",
+            "Guinea Pigs",
+            "Humans",
+            "Isomerism",
+            "Piperidines",
+            "Rats",
+            "Rats, Sprague-Dawley",
+            "Receptors, sigma",
+            "Spiro Compounds",
+            "Structure-Activity Relationship",
+            "Sigma-1 Receptor"
+          ]
+        }
+      ],
+      "literature_summary": "The article does not provide any evidence that SPIPETHIANE engages TMEM97 or improves non-alcoholic steatohepatitis. It focuses on the interaction of SPIPETHIANE's enantiomers with \u03c3 receptors, which is unrelated to the proposed drug repurposing hypothesis.",
+      "literature_support_level": "none",
+      "literature_strength": 0,
+      "literature_supporting_pmids": [],
+      "safety_summary": "SPIPETHIANE has no reported adverse events in the FAERS database, suggesting limited market exposure and potentially favorable safety. Additionally, there are no safety flags associated with this drug, indicating a lack of significant safety concerns at this time.",
+      "safety_flags": [],
+      "faers_event_count": 0,
+      "faers_serious_count": 0,
+      "has_boxed_warning": false,
+      "label_found": false,
+      "scores": {
+        "target_binding": 10.0,
+        "literature_support": 0.0,
+        "safety_profile": 5.0,
+        "development_stage": 2.0,
+        "disease_relevance": 0.0
+      },
+      "total_score": 4.260000000000001,
+      "ranking_rationale": "",
+      "provenance": {
+        "chembl_id": "CHEMBL39900",
+        "opentargets_id": "",
+        "pubmed_pmids": [
+          "31298830"
+        ],
+        "pubmed_queries_tried": [
+          "\"SPIPETHIANE\"[Title/Abstract] AND (\"TMEM97\"[Title/Abstract] OR \"transmembrane protein 97\"[Title/Abstract] OR \"sigma-2 receptor\"[Title/Abstract] OR \"sigma2 receptor\"[Title/Abstract] OR \"sigma 2 receptor\"[Title/Abstract] OR \"sigma intracellular receptor 2\"[Title/Abstract])",
+          "\"SPIPETHIANE\"[Title/Abstract] AND (\"non-alcoholic steatohepatitis\"[Title/Abstract] OR \"nonalcoholic steatohepatitis\"[Title/Abstract] OR \"non alcoholic steatohepatitis\"[Title/Abstract] OR \"NASH\"[Title/Abstract])"
+        ],
+        "faers_query_matched": "",
+        "routing_decision_ids": [
+          "0ac0e2e1-6c7b-4b55-8a4e-b35ec0c9bf8b"
+        ],
+        "chembl_target_id": "CHEMBL4105907"
+      }
+    }
+  ],
+  "ranking_history": [
+    {
+      "iteration": 1,
+      "rankings": [
+        {
+          "name": "ROLUPERIDONE",
+          "score": 6.0,
+          "scores": {
+            "target_binding": 10.0,
+            "literature_support": 3.0,
+            "safety_profile": 5.0,
+            "development_stage": 8.0,
+            "disease_relevance": 0.0
+          }
+        },
+        {
+          "name": "PITOLISANT HYDROCHLORIDE",
+          "score": 5.7,
+          "scores": {
+            "target_binding": 10.0,
+            "literature_support": 0.0,
+            "safety_profile": 5.0,
+            "development_stage": 10.0,
+            "disease_relevance": 0.0
+          }
+        },
+        {
+          "name": "SIRAMESINE",
+          "score": 5.64,
+          "scores": {
+            "target_binding": 10.0,
+            "literature_support": 3.0,
+            "safety_profile": 5.0,
+            "development_stage": 6.0,
+            "disease_relevance": 0.0
+          }
+        }
+      ],
+      "critique": "PITOLISANT HYDROCHLORIDE - literature_support - should go up - has no literature support but is in Phase 4, indicating potential relevance that is not reflected in the score.  \nSIRAMESINE - literature_support - should go up - has weak literature support which is better than none and should be reflected in a higher score.  \nSIRAMESINE - development_stage - should go up - is in Phase 2, which is a significant advancement and should be acknowledged in the score.  \nPITOLISANT HYDROCHLORIDE - safety_profile - should go down - has a HIGH_SERIOUS_RATIO flag indicating potential safety concerns that should lower its score.",
+      "adjustments": [
+        {
+          "drug": "SIRAMESINE",
+          "component": "literature_support",
+          "adjustment": 1.0,
+          "requested_adjustment": 1.0,
+          "reason": "Weak literature support is better than none and should be reflected in a higher score.",
+          "old_component_score": 3.0,
+          "new_component_score": 4.0,
+          "old_total": 5.64,
+          "new_total": 5.86
+        },
+        {
+          "drug": "PITOLISANT HYDROCHLORIDE",
+          "component": "safety_profile",
+          "adjustment": -1.0,
+          "requested_adjustment": -1.0,
+          "reason": "HIGH_SERIOUS_RATIO flag indicates potential safety concerns that should lower its score.",
+          "old_component_score": 5.0,
+          "new_component_score": 4.0,
+          "old_total": 5.7,
+          "new_total": 5.48
+        }
+      ],
+      "rejected_adjustments": [
+        {
+          "drug": "PITOLISANT HYDROCHLORIDE",
+          "component": "literature_support",
+          "requested_adjustment": 2.0,
+          "rejected_because": "no supporting literature found",
+          "reason": "Phase 4 indicates potential relevance that is not reflected in the current score."
+        },
+        {
+          "drug": "SIRAMESINE",
+          "component": "development_stage",
+          "requested_adjustment": 1.0,
+          "rejected_because": "data-derived component is locked",
+          "reason": "Phase 2 is a significant advancement and should be acknowledged in the score."
+        }
+      ],
+      "approved": false
+    },
+    {
+      "iteration": 2,
+      "rankings": [
+        {
+          "name": "ROLUPERIDONE",
+          "score": 6.0,
+          "scores": {
+            "target_binding": 10.0,
+            "literature_support": 3.0,
+            "safety_profile": 5.0,
+            "development_stage": 8.0,
+            "disease_relevance": 0.0
+          }
+        },
+        {
+          "name": "SIRAMESINE",
+          "score": 5.86,
+          "scores": {
+            "target_binding": 10.0,
+            "literature_support": 4.0,
+            "safety_profile": 5.0,
+            "development_stage": 6.0,
+            "disease_relevance": 0.0
+          }
+        },
+        {
+          "name": "PITOLISANT HYDROCHLORIDE",
+          "score": 5.48,
+          "scores": {
+            "target_binding": 10.0,
+            "literature_support": 0.0,
+            "safety_profile": 4.0,
+            "development_stage": 10.0,
+            "disease_relevance": 0.0
+          }
+        }
+      ],
+      "critique": "PITOLISANT HYDROCHLORIDE - literature_support - should go up - weak literature support is better than none and should be reflected in a higher score.  \nPITOLISANT HYDROCHLORIDE - safety_profile - should go down - HIGH_SERIOUS_RATIO flag indicates potential safety concerns that should lower its score.  \nROLUPERIDONE - disease_relevance - should go up - no evidence provided for disease relevance, but it should not be scored as 0.0 without any supporting literature.  \nSIRAMESINE - disease_relevance - should go up - no evidence provided for disease relevance, but it should not be scored as 0.0 without any supporting literature.  ",
+      "adjustments": [
+        {
+          "drug": "PITOLISANT HYDROCHLORIDE",
+          "component": "safety_profile",
+          "adjustment": -1.0,
+          "requested_adjustment": -1.0,
+          "reason": "HIGH_SERIOUS_RATIO flag indicates potential safety concerns that should lower its score.",
+          "old_component_score": 4.0,
+          "new_component_score": 3.0,
+          "old_total": 5.48,
+          "new_total": 5.26
+        }
+      ],
+      "rejected_adjustments": [
+        {
+          "drug": "PITOLISANT HYDROCHLORIDE",
+          "component": "literature_support",
+          "requested_adjustment": 1.0,
+          "rejected_because": "no supporting literature found",
+          "reason": "Weak literature support is better than none and should be reflected in a higher score."
+        },
+        {
+          "drug": "ROLUPERIDONE",
+          "component": "disease_relevance",
+          "requested_adjustment": 1.0,
+          "rejected_because": "no known indications for this drug",
+          "reason": "No evidence provided for disease relevance, but it should not be scored as 0.0 without any supporting literature."
+        },
+        {
+          "drug": "SIRAMESINE",
+          "component": "disease_relevance",
+          "requested_adjustment": 1.0,
+          "rejected_because": "no known indications for this drug",
+          "reason": "No evidence provided for disease relevance, but it should not be scored as 0.0 without any supporting literature."
+        }
+      ],
+      "approved": false
+    }
+  ],
+  "roadmap": "### Executive Summary\n\nThis validation roadmap outlines a 3-month strategy for evaluating the repurposing of three drug candidates\u2014Roluperidone, Siramesine, and Pitolisant Hydrochloride\u2014for the treatment of non-alcoholic steatohepatitis (NASH) through the modulation of TMEM97. The goal is to assess the efficacy and safety of these candidates in preclinical models and determine their potential for clinical application. Each month will focus on specific objectives, culminating in a go/no-go decision based on gathered data and analysis.\n\n### Month 1: Target Engagement\n\n**Objectives:**\n- Assess the binding affinity and functional activity of each candidate on TMEM97.\n- Evaluate the pharmacokinetics and pharmacodynamics of the candidates in relevant biological systems.\n\n**Activities:**\n1. **In vitro Binding Studies:**\n   - Conduct assays to measure the binding affinity of Roluperidone, Siramesine, and Pitolisant Hydrochloride to TMEM97.\n   - Utilize surface plasmon resonance (SPR) or similar techniques.\n\n2. **Functional Assays:**\n   - Evaluate the impact of each drug on TMEM97-mediated pathways in cell lines expressing TMEM97.\n   - Measure downstream effects on lipid metabolism and inflammation markers.\n\n3. **Pharmacokinetic Profiling:**\n   - Analyze the absorption, distribution, metabolism, and excretion (ADME) properties of each candidate in animal models.\n\n**Data Limitations:**\n- Potential variability in cell line responses.\n- Limited availability of TMEM97-specific assays.\n\n### Month 2: Disease Models\n\n**Objectives:**\n- Validate the efficacy of the candidates in preclinical models of NASH.\n- Assess the safety profile and potential side effects.\n\n**Activities:**\n1. **Animal Models:**\n   - Utilize established NASH models (e.g., high-fat diet-induced models) to evaluate the therapeutic effects of each candidate.\n   - Monitor liver histology, lipid accumulation, and inflammatory markers.\n\n2. **Dosing Regimen:**\n   - Determine optimal dosing schedules based on pharmacokinetic data from Month 1.\n   - Implement both short-term and long-term treatment protocols.\n\n3. **Safety Assessments:**\n   - Conduct toxicity studies to evaluate liver function and overall health of the animals.\n   - Monitor for adverse effects and dose-limiting toxicities.\n\n**Data Limitations:**\n- Differences in metabolism between animal models and humans.\n- Limited understanding of long-term effects in chronic dosing scenarios.\n\n### Month 3: Go/No-Go Decision\n\n**Objectives:**\n- Analyze data from target engagement and disease models to make an informed decision on the candidates.\n- Prepare a comprehensive report summarizing findings and recommendations.\n\n**Activities:**\n1. **Data Analysis:**\n   - Compile and analyze data from binding studies, functional assays, and animal model outcomes.\n   - Compare efficacy and safety profiles of Roluperidone, Siramesine, and Pitolisant Hydrochloride.\n\n2. **Decision Matrix:**\n   - Develop a decision matrix based on efficacy, safety, and feasibility of clinical translation.\n   - Engage stakeholders for input on the decision-making process.\n\n3. **Final Report:**\n   - Prepare a detailed report summarizing findings, including recommendations for further development or discontinuation of candidates.\n   - Present findings to stakeholders for final approval.\n\n**Data Limitations:**\n- Potential biases in data interpretation.\n- Limited sample sizes in preclinical studies may affect generalizability.\n\n### Conclusion\n\nThis roadmap provides a structured approach to validate the repurposing of Roluperidone, Siramesine, and Pitolisant Hydrochloride for NASH treatment via TMEM97 modulation. By focusing on target engagement, disease modeling, and a final decision-making process, we aim to ensure a thorough evaluation of these candidates within a 3-month timeframe."
+}

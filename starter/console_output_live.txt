@@ -1,0 +1,166 @@
+
+============================================================
+DRUG REPURPOSING AGENTIC WORKFLOW
+Target: TMEM97 | Disease: non-alcoholic steatohepatitis
+Mock mode: False
+============================================================
+
+[Planning] Creating action plan...
+  Objective: The goal is to identify existing compounds that target TMEM97 for potential repurposing in the treatment of non-alcoholic steatohepatitis.
+  Steps: ['data_mining', 'enrichment', 'scoring', 'roadmap']
+
+[Step 1] This step involves mining ChEMBL and Open Targets databases to find compounds and known drugs that act on TMEM97.
+  Routed to: DataMiningAgent
+2026-11-22 13:22:02,028 [INFO] DataMiningAgent: Starting sequential data mining...
+2026-11-22 13:22:02,150 [INFO]   Step 1/3: Found 15 compounds from ChEMBL
+2026-11-22 13:22:02,371 [INFO]   Step 2/3: Found 0 drugs from Open Targets
+2026-11-22 13:22:02,372 [INFO]   Step 3/3: Merged to 15 unique candidates
+2026-11-22 13:22:02,372 [INFO]   Final: 15 unique candidates
+  Found 15 candidates (ChEMBL target: CHEMBL4105907)
+
+[Step 2] In this step, we will gather PubMed literature evidence and FDA safety data for the top candidates identified in the previous step.
+  Routed to: RoutingAgent -> LiteratureAgent + SafetyAgent
+  Enriching top 5 candidates...
+2026-11-22 13:22:06,962 [INFO]   Rejected disease synonyms (broader/unrelated): ['nonalcoholic fatty liver disease', 'non-alcoholic fatty liver disease']
+2026-11-22 13:22:07,534 [INFO]   LiteratureAgent search terms: target=['TMEM97', 'transmembrane protein 97', 'sigma-2 receptor', 'sigma intracellular receptor 2'] disease=['non-alcoholic steatohepatitis', 'NASH']
+    ✓ SIRAMESINE | literature=broad_search -> weak (3 articles) | safety=faers_only -> flags: none
+    ✓ SPIPETHIANE | literature=broad_search -> none (1 articles) | safety=basic -> flags: none
+2026-11-22 13:22:24,390 [INFO]   No PubMed hits for 'PITOLISANT' - trying synonyms ['BF-2649', 'Ciproxidine', 'Ozawade']
+    ✓ PITOLISANT HYDROCHLORIDE | literature=broad_search -> none (0 articles) | safety=comprehensive -> flags: HIGH_SERIOUS_RATIO
+    ✓ NEMONAPRIDE | literature=broad_search -> none (1 articles) | safety=faers_only -> flags: none
+    ✓ ROLUPERIDONE | literature=broad_search -> weak (1 articles) | safety=faers_only -> flags: none
+
+[Step 3] This step will score and rank the candidates based on their target binding, literature support, safety, development stage, and relevance to the disease.
+  Routed to: EvaluationAgent
+2026-11-22 13:22:52,621 [INFO] EvaluationAgent: Starting evaluator-optimizer loop...
+2026-11-22 13:22:57,663 [INFO]   Rejected adjustment (no supporting literature found): PITOLISANT HYDROCHLORIDE literature_support +2.0
+2026-11-22 13:22:57,664 [INFO]   Rejected adjustment (data-derived component is locked): SIRAMESINE development_stage +1.0
+2026-11-22 13:22:57,664 [INFO]   Iteration 1: not approved, 2 adjustment(s) applied
+2026-11-22 13:23:03,337 [INFO]   Rejected adjustment (no supporting literature found): PITOLISANT HYDROCHLORIDE literature_support +1.0
+2026-11-22 13:23:03,337 [INFO]   Rejected adjustment (no known indications for this drug): ROLUPERIDONE disease_relevance +1.0
+2026-11-22 13:23:03,338 [INFO]   Rejected adjustment (no known indications for this drug): SIRAMESINE disease_relevance +1.0
+2026-11-22 13:23:03,338 [INFO]   Iteration 2: not approved, 1 adjustment(s) applied
+2026-11-22 13:23:03,338 [INFO]   Max iterations (2) reached without approval
+
+[Step 4] In this final step, we will write an experimental validation roadmap for the top-ranked candidates to guide further research.
+  Routed to: EvaluationAgent
+
+============================================================
+COMPLETE | LLM calls: 24 | Candidates: 5 (5 enriched)
+============================================================
+
+============================================================
+TOP CANDIDATES
+============================================================
+
+1. ROLUPERIDONE (CHEMBL4297605)
+   Score: 6.00 | Phase: 3 | pChEMBL: 8.09
+   Scores: {'target_binding': 10.0, 'literature_support': 3.0, 'safety_profile': 5.0, 'development_stage': 8.0, 'disease_relevance': 0.0}
+   Literature: weak | Safety: None
+   Rationale: ROLUPERIDONE ranks #1 for repurposing due to its high pChEMBL score of 8.09, indicating strong binding affinity, and its...
+
+2. SIRAMESINE (CHEMBL61479)
+   Score: 5.86 | Phase: 2 | pChEMBL: 9.92
+   Scores: {'target_binding': 10.0, 'literature_support': 4.0, 'safety_profile': 5.0, 'development_stage': 6.0, 'disease_relevance': 0.0}
+   Literature: weak | Safety: None
+   Rationale: SIRAMESINE ranks #2 for repurposing due to its high pChEMBL score of 9.92, indicating strong binding affinity to the tar...
+
+3. PITOLISANT HYDROCHLORIDE (CHEMBL4164059)
+   Score: 5.26 | Phase: 4 | pChEMBL: 8.15
+   Scores: {'target_binding': 10.0, 'literature_support': 0.0, 'safety_profile': 3.0, 'development_stage': 10.0, 'disease_relevance': 0.0}
+   Literature: none | Safety: ['HIGH_SERIOUS_RATIO']
+   Rationale: PITOLISANT HYDROCHLORIDE ranks #3 for repurposing due to its strong binding affinity indicated by a pChEMBL score of 8.1...
+
+------------------------------------------------------------
+EVALUATOR-OPTIMIZER HISTORY
+------------------------------------------------------------
+
+  Iteration 1:
+    Rankings: ['ROLUPERIDONE:6.0', 'PITOLISANT HYDROCHLORIDE:5.7', 'SIRAMESINE:5.64']
+    Adjustments: 2 applied
+
+  Iteration 2:
+    Rankings: ['ROLUPERIDONE:6.0', 'SIRAMESINE:5.86', 'PITOLISANT HYDROCHLORIDE:5.48']
+    Adjustments: 1 applied
+
+============================================================
+VALIDATION ROADMAP
+============================================================
+### Executive Summary
+
+This validation roadmap outlines a 3-month strategy for evaluating the repurposing of three drug candidates—Roluperidone, Siramesine, and Pitolisant Hydrochloride—for the treatment of non-alcoholic steatohepatitis (NASH) through the modulation of TMEM97. The goal is to assess the efficacy and safety of these candidates in preclinical models and determine their potential for clinical application. Each month will focus on specific objectives, culminating in a go/no-go decision based on gathered data and analysis.
+
+### Month 1: Target Engagement
+
+**Objectives:**
+- Assess the binding affinity and functional activity of each candidate on TMEM97.
+- Evaluate the pharmacokinetics and pharmacodynamics of the candidates in relevant biological systems.
+
+**Activities:**
+1. **In vitro Binding Studies:**
+   - Conduct assays to measure the binding affinity of Roluperidone, Siramesine, and Pitolisant Hydrochloride to TMEM97.
+   - Utilize surface plasmon resonance (SPR) or similar techniques.
+
+2. **Functional Assays:**
+   - Evaluate the impact of each drug on TMEM97-mediated pathways in cell lines expressing TMEM97.
+   - Measure downstream effects on lipid metabolism and inflammation markers.
+
+3. **Pharmacokinetic Profiling:**
+   - Analyze the absorption, distribution, metabolism, and excretion (ADME) properties of each candidate in animal models.
+
+**Data Limitations:**
+- Potential variability in cell line responses.
+- Limited availability of TMEM97-specific assays.
+
+### Month 2: Disease Models
+
+**Objectives:**
+- Validate the efficacy of the candidates in preclinical models of NASH.
+- Assess the safety profile and potential side effects.
+
+**Activities:**
+1. **Animal Models:**
+   - Utilize established NASH models (e.g., high-fat diet-induced models) to evaluate the therapeutic effects of each candidate.
+   - Monitor liver histology, lipid accumulation, and inflammatory markers.
+
+2. **Dosing Regimen:**
+   - Determine optimal dosing schedules based on pharmacokinetic data from Month 1.
+   - Implement both short-term and long-term treatment protocols.
+
+3. **Safety Assessments:**
+   - Conduct toxicity studies to evaluate liver function and overall health of the animals.
+   - Monitor for adverse effects and dose-limiting toxicities.
+
+**Data Limitations:**
+- Differences in metabolism between animal models and humans.
+- Limited understanding of long-term effects in chronic dosing scenarios.
+
+### Month 3: Go/No-Go Decision
+
+**Objectives:**
+- Analyze data from target engagement and disease models to make an informed decision on the candidates.
+- Prepare a comprehensive report summarizing findings and recommendations.
+
+**Activities:**
+1. **Data Analysis:**
+   - Compile and analyze data from binding studies, functional assays, and animal model outcomes.
+   - Compare efficacy and safety profiles of Roluperidone, Siramesine, and Pitolisant Hydrochloride.
+
+2. **Decision Matrix:**
+   - Develop a decision matrix based on efficacy, safety, and feasibility of clinical translation.
+   - Engage stakeholders for input on the decision-making process.
+
+3. **Final Report:**
+   - Prepare a detailed report summarizing findings, including recommendations for further development or discontinuation of candidates.
+   - Present findings to stakeholders for final approval.
+
+**Data Limitations:**
+- Potential biases in data interpretation.
+- Limited sample sizes in preclinical studies may affect generalizability.
+
+### Conclusion
+
+This roadmap provides a structured approach to validate the repurposing of Roluperidone, Siramesine, and Pitolisant Hydrochloride for NASH treatment via TMEM97 modulation. By focusing on target engagement, disease modeling, and a final decision-making process, we aim to ensure a thorough evaluation of these candidates within a 3-month timeframe.
+Saved: ./candidates_tmem97_non_alcoholic_steatohepatitis.csv
+Saved: ./audit_tmem97_non_alcoholic_steatohepatitis.json
+exit code: 0
