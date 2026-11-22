@@ -604,6 +604,12 @@ import ls_action_space.action_space as _action_space_module
 for _mock_fn in (get_mock_chembl, get_mock_ot, get_mock_faers, get_mock_fda_label):
     setattr(_action_space_module, _mock_fn.__name__, _mock_fn)
 
+# 3) ls_action_space logs a warning at import time (missing ENTREZ_EMAIL), which
+#    implicitly configures the root logger at WARNING before the provided
+#    logging.basicConfig(level=INFO) runs - so that call is a no-op and the
+#    agents' INFO progress logs are hidden. Set the level on our logger directly.
+logger.setLevel(logging.INFO)
+
 
 class ActionPlanningAgent(BaseAgent):
     """
@@ -925,18 +931,21 @@ class DataMiningAgent(BaseAgent):
         # TODO 3: Implement sequential workflow
         # =====================================================================
 
-        # Step 1: Query ChEMBL
-        # chembl_compounds, chembl_target_id = query_chembl(...)
+        # Step 1: Query ChEMBL for compounds with measured activity against the target
+        chembl_compounds, chembl_target_id = query_chembl(target, max_compounds=MAX_CHEMBL_COMPOUNDS)
+        chembl_compounds = chembl_compounds or []
+        chembl_target_id = chembl_target_id or ""
+        logger.info(f"  Step 1/3: Found {len(chembl_compounds)} compounds from ChEMBL")
 
-        # Step 2: Query Open Targets
-        # ot_data = query_opentargets(...)
+        # Step 2: Query Open Targets for known drugs (MOA, indications, phase)
+        ot_data = query_opentargets(target) or {}
+        known_drugs = ot_data.get("known_drugs", []) or []
+        logger.info(f"  Step 2/3: Found {len(known_drugs)} drugs from Open Targets")
 
-        # Step 3: Merge and sort
-        # candidates = self._merge_sources(...)
-        # candidates.sort(...)
-
-        candidates = []  # Replace with your implementation
-        chembl_target_id = ""  # Replace with your implementation
+        # Step 3: Merge + deduplicate both sources, then rank by potency and phase
+        candidates = self._merge_sources(chembl_compounds, ot_data, chembl_target_id, disease)
+        candidates.sort(key=lambda c: (c.pchembl_value, c.max_phase), reverse=True)
+        logger.info(f"  Step 3/3: Merged to {len(candidates)} unique candidates")
 
         # =====================================================================
         # END TODO 3
