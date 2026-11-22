@@ -1445,28 +1445,77 @@ class EvaluationAgent(BaseAgent):
         # TODO 6: Implement evaluator-optimizer loop
         # =====================================================================
 
-        # for iteration in range(max_iterations):
-        #
-        #     # 1. Score (first iteration) or recalculate totals (subsequent)
-        #
-        #     # 2. Sort by total_score
-        #
-        #     # 3. Critique rankings (Evaluator)
-        #
-        #     # 4. Check if approved
-        #
-        #     # 5. Refine rankings (Optimizer)
-        #
-        #     # 6. Record iteration
+        for iteration in range(max_iterations):
+            # 1. Score from data ONCE; later iterations only recompute totals from
+            #    the (possibly optimizer-adjusted) component scores, so adjustments persist.
+            if iteration == 0:
+                self._score_candidates(enriched_candidates)
+            else:
+                for c in enriched_candidates:
+                    c.total_score = self._weighted_total(c.scores)
+
+            # 2. Sort by total score
+            enriched_candidates.sort(key=lambda c: c.total_score, reverse=True)
+            top = enriched_candidates[:TOP_N_DISPLAY]
+            rankings = [{"name": c.name, "score": round(c.total_score, 4), "scores": dict(c.scores)}
+                        for c in top]
+
+            # 3. EVALUATE: critique the current top rankings
+            critique = self._critique_rankings(top, target, disease) or ""
+
+            # 4. Approval check -> record and stop
+            if self._is_approved(critique):
+                logger.info(f"  Iteration {iteration + 1}: rankings approved")
+                ranking_history.append({
+                    "iteration": iteration + 1,
+                    "rankings": rankings,
+                    "critique": critique,
+                    "adjustments": [],
+                    "approved": True,
+                })
+                break
+
+            # 5. OPTIMIZE: apply bounded score adjustments suggested from the critique
+            enriched_candidates, applied = self._refine_rankings(enriched_candidates, critique)
+            logger.info(f"  Iteration {iteration + 1}: not approved, {len(applied)} adjustment(s) applied")
+
+            # 6. Record the iteration (rankings that were critiqued + what changed)
+            ranking_history.append({
+                "iteration": iteration + 1,
+                "rankings": rankings,
+                "critique": critique,
+                "adjustments": applied,
+                "approved": False,
+            })
+        else:
+            logger.info(f"  Max iterations ({max_iterations}) reached without approval")
+
+        # Final order reflects all accumulated adjustments
+        enriched_candidates.sort(key=lambda c: c.total_score, reverse=True)
 
         # Generate rationales for top candidates
-        # self._generate_rationales(enriched_candidates[:TOP_N_DISPLAY], target, disease)
+        self._generate_rationales(enriched_candidates[:TOP_N_DISPLAY], target, disease)
 
         # =====================================================================
         # END TODO 6
         # =====================================================================
 
         return enriched_candidates, ranking_history
+
+    def _weighted_total(self, scores: Dict[str, float]) -> float:
+        """Weighted sum of the component scores using WEIGHTS (0-10 scale)."""
+        return sum(scores.get(k, 0.0) * w for k, w in self.WEIGHTS.items())
+
+    APPROVAL_PHRASE = "rankings are appropriate"
+
+    @classmethod
+    def _is_approved(cls, critique: str) -> bool:
+        """True if the critique contains the approval phrase and no negation of it
+        (a bare `"appropriate" in critique` would also match "not appropriate")."""
+        text = (critique or "").strip().lower()
+        if cls.APPROVAL_PHRASE not in text:
+            return False
+        return "not appropriate" not in text and "inappropriate" not in text
 
     def _score_candidates(self, candidates: List[DrugCandidate]) -> List[DrugCandidate]:
         """
