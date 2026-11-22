@@ -1056,11 +1056,60 @@ class LiteratureAgent(BaseAgent):
             "You assess biomedical literature for drug repurposing evidence."
         )
 
+    # Trailing salt / form words that papers usually omit ("pitolisant hydrochloride" -> "pitolisant").
+    _SALT_SUFFIX_RE = re.compile(
+        r"(?:\s+(?:hydrochloride|dihydrochloride|hcl|hydrobromide|sodium|potassium|calcium|mesylate|"
+        r"dimesylate|maleate|fumarate|tartrate|citrate|sulfate|sulphate|phosphate|acetate|bromide|"
+        r"besylate|succinate|tosylate|free\s+base))+\s*$",
+        re.IGNORECASE,
+    )
+    MAX_LITERATURE_NAMES = 4
+
+    @classmethod
+    def _strip_salt(cls, name: str) -> str:
+        stripped = cls._SALT_SUFFIX_RE.sub("", (name or "").strip()).strip()
+        return stripped or (name or "").strip()
+
     @staticmethod
-    def _build_queries(name: str, target: str, disease: str, strategy: str) -> List[str]:
+    def _is_ambiguous_synonym(name: str) -> bool:
+        """Very short single-word synonyms (e.g. "FMI") match unrelated acronyms in PubMed."""
+        n = name.strip()
+        return (" " not in n and len(n) < 5) or n.isdigit()
+
+    def _literature_names(self, candidate: DrugCandidate) -> List[str]:
+        """Ordered PubMed search names: the primary name (salt-stripped) first, then
+        salt-stripped synonyms that are valid and unambiguous, deduplicated."""
+        names: List[str] = []
+        raw = [candidate.name] + list(candidate.synonyms or [])
+        for i, n in enumerate(raw):
+            if not is_valid_search_name(n):
+                continue
+            base = self._strip_salt(n)
+            if i > 0 and self._is_ambiguous_synonym(base):
+                continue  # never drop the primary name, only noisy fallbacks
+            if base and base.lower() not in {x.lower() for x in names}:
+                names.append(base)
+            if len(names) >= self.MAX_LITERATURE_NAMES:
+                break
+        return names
+
+    @staticmethod
+    def _term_clause(term: str) -> str:
+        """Title/Abstract clause matching common hyphenation variants of a term,
+        e.g. "non-alcoholic steatohepatitis" OR "nonalcoholic steatohepatitis"."""
+        variants: List[str] = []
+        for v in (term, term.replace("-", ""), term.replace("-", " ")):
+            v = re.sub(r"\s+", " ", v).strip()
+            if v and v.lower() not in {x.lower() for x in variants}:
+                variants.append(v)
+        clauses = [f'"{v}"[Title/Abstract]' for v in variants]
+        return clauses[0] if len(clauses) == 1 else "(" + " OR ".join(clauses) + ")"
+
+    @classmethod
+    def _build_queries(cls, name: str, target: str, disease: str, strategy: str) -> List[str]:
         """PubMed query strings for one drug name according to the routed strategy."""
-        by_target = f'"{name}"[Title/Abstract] AND "{target}"[Title/Abstract]'
-        by_disease = f'"{name}"[Title/Abstract] AND "{disease}"[Title/Abstract]'
+        by_target = f'"{name}"[Title/Abstract] AND {cls._term_clause(target)}'
+        by_disease = f'"{name}"[Title/Abstract] AND {cls._term_clause(disease)}'
         if strategy == "target_focused":
             return [by_target]
         if strategy == "disease_focused":
@@ -1133,13 +1182,15 @@ class LiteratureAgent(BaseAgent):
             candidate.literature_strength = 0
             return candidate
 
-        drug = search_names[0]
+        # Literature-friendly names: salt forms stripped, ambiguous short synonyms dropped.
+        names = self._literature_names(candidate) or search_names
+        drug = names[0]
 
         # CHAIN STEP 1: Build queries from the routed strategy and search PubMed.
         # Primary name first; synonyms are only used as a fallback when the
         # primary queries return no articles at all.
         primary = [(q, drug) for q in self._build_queries(drug, target, disease, strategy)]
-        fallbacks = [(q, name) for name in search_names[1:]
+        fallbacks = [(q, name) for name in names[1:]
                      for q in self._build_queries(name, target, disease, strategy)]
 
         articles: List[Dict] = []
