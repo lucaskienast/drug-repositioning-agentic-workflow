@@ -1556,19 +1556,52 @@ class EvaluationAgent(BaseAgent):
         # =====================================================================
         # TODO 7: Implement scoring logic
         # =====================================================================
+        stage_scores = {4: 10, 3: 8, 2: 6, 1: 4, 0: 2}
+
         for c in candidates:
-            # target_binding score
+            # target_binding score (pChEMBL: higher = stronger binding)
+            p = c.pchembl_value or 0.0
+            if p >= 8.0:
+                binding = 10
+            elif p >= 7.0:
+                binding = 8
+            elif p >= 6.0:
+                binding = 6
+            elif p > 0:
+                binding = 4
+            else:
+                binding = 2
 
-            # literature_support score
+            # literature_support score (already 0-10, clamp defensively)
+            literature = max(0, min(10, c.literature_strength or 0))
 
-            # safety_profile score
+            # safety_profile score (lower risk = higher score; checked in severity order)
+            if "BOXED_WARNING" in c.safety_flags:
+                safety = 3
+            elif "HIGH_SERIOUS_RATIO" in c.safety_flags:
+                safety = 5
+            elif c.faers_event_count > 0:
+                safety = 7
+            else:
+                safety = 5
 
-            # development_stage score
+            # development_stage score (phase clamped to 0-4)
+            phase = max(0, min(4, int(c.max_phase or 0)))
+            stage = stage_scores[phase]
 
-            # disease_relevance score
+            # disease_relevance score (0-1 scale -> 0-10)
+            relevance = max(0.0, min(10.0, (c.disease_relevance_score or 0.0) * 10))
 
-            # Calculate total_score
-            pass
+            c.scores = {
+                "target_binding": float(binding),
+                "literature_support": float(literature),
+                "safety_profile": float(safety),
+                "development_stage": float(stage),
+                "disease_relevance": float(relevance),
+            }
+
+            # Calculate total_score (weighted sum, 0-10)
+            c.total_score = self._weighted_total(c.scores)
         # =====================================================================
         # END TODO 7
         # =====================================================================
