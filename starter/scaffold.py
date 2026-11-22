@@ -1587,10 +1587,20 @@ class EvaluationAgent(BaseAgent):
     # its initial value (prevents re-penalising the same issue every iteration).
     MAX_CUMULATIVE_ADJUSTMENT = 2.0
 
+    # Components computed directly from data (pChEMBL, clinical phase): there is never
+    # evidence to adjust them, so the optimizer may not change them.
+    LOCKED_COMPONENTS = ("target_binding", "development_stage")
+
+    @property
+    def ADJUSTABLE_COMPONENTS(self) -> List[str]:
+        return [k for k in self.WEIGHTS if k not in self.LOCKED_COMPONENTS]
+
     def _guardrail_violation(self, cand: DrugCandidate, component: str, delta: float,
                              previous: List[Dict]) -> Optional[str]:
         """Evidence guardrails the optimizer cannot override. Returns a reason if the
         adjustment must be blocked, else None."""
+        if component in self.LOCKED_COMPONENTS:
+            return "data-derived component is locked"
         for p in previous:
             if p["drug"] == cand.name and p["component"] == component and p["adjustment"] * delta < 0:
                 return "would reverse an earlier adjustment"
@@ -1870,6 +1880,7 @@ class EvaluationAgent(BaseAgent):
             for i, c in enumerate(top)
         )
         weights = ", ".join(f"{k} {w:.0%}" for k, w in self.WEIGHTS.items())
+        adjustable = ", ".join(self.ADJUSTABLE_COMPONENTS)
 
         # Adjustments from earlier rounds are already reflected in the scores; show
         # them so the critic does not request the same correction again.
@@ -1918,8 +1929,9 @@ Response rules:
   (that phrase only, nothing else).
 - Otherwise do NOT use that phrase. List each specific problem as one line:
   <drug name> - <component> - should go up/down - <short reason>
-  where <component> is one of: target_binding, literature_support, safety_profile,
-  development_stage, disease_relevance."""
+  where <component> is one of: {adjustable}.
+  target_binding and development_stage are fixed from the data (pChEMBL, clinical phase) and
+  cannot be adjusted - do not request changes to them."""
 
         return self._call_llm(prompt)
         # =====================================================================
@@ -1966,10 +1978,13 @@ Response rules:
         # =====================================================================
         # TODO 9: Write prompt and apply adjustments
         # =====================================================================
-        components = "|".join(self.WEIGHTS.keys())
+        components = "|".join(self.ADJUSTABLE_COMPONENTS)
         def _fmt(c: DrugCandidate) -> str:
             parts = []
             for k, v in c.scores.items():
+                if k in self.LOCKED_COMPONENTS:
+                    parts.append(f"{k}={v:.1f} (locked)")
+                    continue
                 lo, hi = self._component_bounds(c, k)
                 parts.append(f"{k}={v:.1f} (allowed {lo:.0f}-{hi:.0f})")
             return ", ".join(parts)
