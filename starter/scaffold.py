@@ -1500,6 +1500,14 @@ class EvaluationAgent(BaseAgent):
             "EvaluationAgent",
             "You evaluate and rank drug repurposing candidates using iterative refinement."
         )
+        # Per-run optimizer state: initial component scores (to cap cumulative drift)
+        # and adjustments already applied (shown to the critic to avoid repeats).
+        self._baseline_scores: Dict[int, Dict[str, float]] = {}
+        self._applied_history: List[Dict] = []
+
+    # Max total change of any component score across all iterations, relative to
+    # its initial value (prevents re-penalising the same issue every iteration).
+    MAX_CUMULATIVE_ADJUSTMENT = 2.0
 
     def score_and_rank(self, candidates: List[DrugCandidate], target: str,
                        disease: str, max_iterations: int = 2) -> Tuple[List[DrugCandidate], List[Dict]]:
@@ -1570,6 +1578,8 @@ class EvaluationAgent(BaseAgent):
             #    the (possibly optimizer-adjusted) component scores, so adjustments persist.
             if iteration == 0:
                 self._score_candidates(enriched_candidates)
+                self._baseline_scores = {id(c): dict(c.scores) for c in enriched_candidates}
+                self._applied_history = []
             else:
                 for c in enriched_candidates:
                     c.total_score = self._weighted_total(c.scores)
@@ -1597,6 +1607,7 @@ class EvaluationAgent(BaseAgent):
 
             # 5. OPTIMIZE: apply bounded score adjustments suggested from the critique
             enriched_candidates, applied = self._refine_rankings(enriched_candidates, critique)
+            self._applied_history.extend(applied)
             logger.info(f"  Iteration {iteration + 1}: not approved, {len(applied)} adjustment(s) applied")
 
             # 6. Record the iteration (rankings that were critiqued + what changed)
@@ -1761,6 +1772,19 @@ class EvaluationAgent(BaseAgent):
         )
         weights = ", ".join(f"{k} {w:.0%}" for k, w in self.WEIGHTS.items())
 
+        # Adjustments from earlier rounds are already reflected in the scores; show
+        # them so the critic does not request the same correction again.
+        previous = ""
+        if self._applied_history:
+            previous = (
+                "\nADJUSTMENTS ALREADY APPLIED IN EARLIER REVIEW ROUNDS (already reflected in the "
+                "scores above - do NOT request them again):\n"
+                + "\n".join(f"- {a['drug']}: {a['component']} {a['adjustment']:+.1f} ({a['reason']})"
+                            for a in self._applied_history)
+                + f"\nEach component may move at most +/-{self.MAX_CUMULATIVE_ADJUSTMENT:.0f} "
+                  "from its initial value in total.\n"
+            )
+
         prompt = f"""Critique the current ranking of drug repurposing candidates.
 
 CONTEXT
@@ -1773,7 +1797,7 @@ CURRENT RANKINGS (Score 0-10, higher is better):
 
 COMPONENT SCORES:
 {components}
-
+{previous}
 Evaluate whether this order is scientifically reasonable and well-balanced for repurposing
 toward {disease} via {target}. Look specifically for:
 - a candidate ranked too high despite serious safety flags (BOXED_WARNING, HIGH_SERIOUS_RATIO)
@@ -1781,6 +1805,8 @@ toward {disease} via {target}. Look specifically for:
 - a candidate ranked too low despite strong binding (pChEMBL >= 8), relevant literature or an
   advanced clinical phase;
 - a component score that does not match the evidence shown, or over-reliance on one factor.
+Do not repeat a problem that an earlier adjustment already addressed. If the only remaining
+issues are ones already addressed, the order counts as reasonable.
 
 Response rules:
 - If the order is reasonable, respond with exactly: Rankings are appropriate
@@ -1902,14 +1928,23 @@ Return ONLY a JSON array in exactly this format:
 
             old_component = cand.scores.get(component, 0.0)
             old_total = cand.total_score
-            new_component = max(0.0, min(10.0, old_component + delta))
+            # Cap the cumulative change relative to the initial score (+/-2 in total),
+            # in addition to the 0-10 bounds.
+            base = self._baseline_scores.setdefault(id(cand), dict(cand.scores)).get(component, old_component)
+            lo = max(0.0, base - self.MAX_CUMULATIVE_ADJUSTMENT)
+            hi = min(10.0, base + self.MAX_CUMULATIVE_ADJUSTMENT)
+            new_component = max(lo, min(hi, old_component + delta))
+            if new_component == old_component:
+                logger.info(f"  Skipping adjustment (cumulative cap reached): {cand.name} {component} {delta:+.1f}")
+                continue
             cand.scores[component] = new_component
             cand.total_score = self._weighted_total(cand.scores)
 
             applied.append({
                 "drug": cand.name,
                 "component": component,
-                "adjustment": delta,
+                "adjustment": round(new_component - old_component, 4),
+                "requested_adjustment": delta,
                 "reason": str(adj.get("reason", "")),
                 "old_component_score": old_component,
                 "new_component_score": new_component,
