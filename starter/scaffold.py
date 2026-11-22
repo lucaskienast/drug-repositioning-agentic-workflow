@@ -1956,31 +1956,83 @@ class DrugRepurposingOrchestrator:
 
         if task_type == "data_mining":
             # Mine databases
-            pass
+            print(f"  Routed to: {AGENT_REGISTRY['data_mining']}")
+            try:
+                candidates, chembl_target_id = self.data_miner.run(self.target, self.disease)
+            except Exception as e:
+                logger.error(f"Data mining failed: {e}")
+                self.audit.errors.append(f"data_mining: {type(e).__name__}: {e}")
+                candidates, chembl_target_id = [], ""
+            self.candidates = candidates
+            print(f"  Found {len(candidates)} candidates (ChEMBL target: {chembl_target_id or 'n/a'})")
+            return candidates
 
         elif task_type == "enrichment":
             # Enrich top candidates with routing
+            print(f"  Routed to: RoutingAgent -> {AGENT_REGISTRY['enrichment']}")
             top = self.candidates[:max_candidates]
             print(f"  Enriching top {len(top)} candidates...")
 
-            # for c in top:
-            #     1. Get routing decision
-            #     2. Record in audit
-            #     3. Store strategies on candidate
-            #     4. Literature enrichment
-            #     5. Safety evaluation
-            #     6. Mark enriched
-            #     7. Print progress
-            pass
+            for c in top:
+                # 1. Get routing decision (LLM chooses per-candidate strategies)
+                routing = self.router.route_enrichment_strategy(c, self.target, self.disease)
+                lit_strategy = routing.inputs["literature_strategy"]
+                safety_strategy = routing.inputs["safety_strategy"]
+
+                # 2. Record in audit (and link it from the candidate's provenance)
+                self.audit.routing_decisions.append({
+                    "decision_id": routing.decision_id,
+                    "candidate": c.name,
+                    "chembl_id": c.chembl_id,
+                    "opentargets_id": c.opentargets_id,
+                    "task_type": routing.task_type,
+                    "agent_name": routing.agent_name,
+                    "inputs": routing.inputs,
+                    "reasoning": routing.reasoning,
+                    "created_at": routing.created_at,
+                })
+                c.provenance.routing_decision_ids.append(routing.decision_id)
+
+                # 3. Store strategies on candidate
+                c.literature_strategy = lit_strategy
+                c.safety_strategy = safety_strategy
+
+                # 4. Literature enrichment with the routed strategy (prompt chain)
+                try:
+                    self.literature.enrich(c, self.target, self.disease, lit_strategy)
+                except Exception as e:
+                    logger.error(f"Literature enrichment failed for {c.name}: {e}")
+                    self.audit.errors.append(f"literature[{c.name}]: {type(e).__name__}: {e}")
+
+                # 5. Safety evaluation with the routed strategy
+                try:
+                    self.safety.evaluate(c, safety_strategy)
+                except Exception as e:
+                    logger.error(f"Safety evaluation failed for {c.name}: {e}")
+                    self.audit.errors.append(f"safety[{c.name}]: {type(e).__name__}: {e}")
+
+                # 6. Mark enriched
+                c.is_enriched = True
+                c.enrichment_timestamp = now_iso()
+
+                # 7. Print progress
+                print(f"    ✓ {c.name} | literature={lit_strategy} -> {c.literature_support_level} "
+                      f"({len(c.pubmed_articles)} articles) | safety={safety_strategy} -> "
+                      f"flags: {', '.join(c.safety_flags) or 'none'}")
+            return top
 
         elif task_type == "scoring":
-            # Score and rank
-            pass
+            # Score and rank (only enriched candidates are scored)
+            print(f"  Routed to: {AGENT_REGISTRY['scoring']}")
+            return self.evaluator.score_and_rank(self.candidates, self.target, self.disease)
 
         elif task_type == "roadmap":
             # Generate roadmap
-            pass
+            print(f"  Routed to: {AGENT_REGISTRY['roadmap']}")
+            return self.evaluator.generate_roadmap(self.candidates, self.target, self.disease)
 
+        logger.warning(f"Unknown task_type '{task_type}' - skipped")
+        self.audit.errors.append(f"Unknown task_type: {task_type}")
         return None
         # =====================================================================
         # END TODO 10
