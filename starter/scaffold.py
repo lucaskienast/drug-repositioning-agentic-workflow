@@ -1247,16 +1247,37 @@ class LiteratureAgent(BaseAgent):
         # =====================================================================
         # TODO 5: Write your assessment prompt here
         # =====================================================================
-        prompt = f"""
-        # YOUR PROMPT HERE
-        # Context: drug={drug}, target={target}, disease={disease}
-        # Include articles_text (provided above)
-        # Request: support_level, strength, supporting_pmids, summary
-        # Include assessment guidelines
+        prompt = f"""Assess whether the PubMed articles below support repurposing a drug.
 
-        ARTICLES:
-        {articles_text}
-        """
+CONTEXT
+- DRUG: {drug}
+- TARGET gene: {target}
+- DISEASE: {disease}
+- Repurposing hypothesis: {drug} could treat {disease} by acting on {target}.
+
+ARTICLES (title + truncated abstract):
+{articles_text}
+
+Grade the evidence for the hypothesis using ONLY these articles:
+- "strong"   (strength 8-10): direct experimental or clinical evidence that {drug} engages {target}
+                              or improves {disease} (or a closely matching model of it).
+- "moderate" (strength 5-7):  indirect but relevant evidence, e.g. {drug} acts on {target} or a closely
+                              related pathway, or shows effects in a related disease model.
+- "weak"     (strength 2-4):  tangential mentions, reviews without new data, or mechanistic speculation.
+- "none"     (strength 0-1):  the articles are unrelated to the drug-target-disease connection.
+
+Rules:
+- Be conservative: use "strong" ONLY for direct experimental evidence; when in doubt, grade lower.
+- supporting_pmids: ONLY PMIDs from the list above that genuinely support the hypothesis (may be empty).
+- summary: 2-3 sentences stating what the evidence shows and its main limitation.
+
+Return ONLY valid JSON in exactly this format:
+{{
+  "support_level": "none|weak|moderate|strong",
+  "strength": <integer 0-10>,
+  "supporting_pmids": ["<pmid>"],
+  "summary": "<2-3 sentences>"
+}}"""
 
         fallback = {
             "support_level": "none",
