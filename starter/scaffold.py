@@ -1063,6 +1063,56 @@ class LiteratureAgent(BaseAgent):
             "LiteratureAgent",
             "You assess biomedical literature for drug repurposing evidence."
         )
+        self._term_cache: Dict[Tuple[str, str], Tuple[List[str], List[str]]] = {}
+
+    MAX_EXTRA_TERMS = 3
+
+    def _search_terms(self, target: str, disease: str) -> Tuple[List[str], List[str]]:
+        """Target and disease search terms, expanded once per (target, disease) via the LLM."""
+        key = (target.lower().strip(), disease.lower().strip())
+        if key not in self._term_cache:
+            self._term_cache[key] = self._expand_terms(target, disease)
+        return self._term_cache[key]
+
+    def _expand_terms(self, target: str, disease: str) -> Tuple[List[str], List[str]]:
+        """Ask the LLM for specific PubMed synonyms of the target and disease (one call).
+        Falls back to the original terms if the output is unusable (e.g. in mock mode)."""
+        prompt = f"""List PubMed search synonyms for a target gene and a disease.
+
+TARGET gene: {target}
+DISEASE: {disease}
+
+Give up to {self.MAX_EXTRA_TERMS} alternative names for EACH that researchers commonly use in paper
+titles/abstracts: protein or receptor names and established aliases for the target; alternative
+spellings, current or former nomenclature, and standard abbreviations for the disease.
+Only exact synonyms of the same entity - no broader categories, related diseases or pathways.
+
+Return ONLY valid JSON in exactly this format:
+{{"target_synonyms": ["<term>", ...], "disease_synonyms": ["<term>", ...]}}"""
+
+        result = self._call_llm_json(prompt, {})
+        if not isinstance(result, dict):
+            result = {}
+
+        def _clean(values, original: str) -> List[str]:
+            terms = [original]
+            for v in (values if isinstance(values, list) else []):
+                v = re.sub(r'["\[\]()]', " ", str(v))
+                v = re.sub(r"\s+", " ", v).strip()
+                if not v or len(v) > 60:
+                    continue
+                if " " not in v and len(v) < 4:
+                    continue  # short acronyms (e.g. "S2R") are too ambiguous for PubMed
+                if v.lower() not in {t.lower() for t in terms}:
+                    terms.append(v)
+                if len(terms) > self.MAX_EXTRA_TERMS:
+                    break
+            return terms
+
+        target_terms = _clean(result.get("target_synonyms"), target)
+        disease_terms = _clean(result.get("disease_synonyms"), disease)
+        logger.info(f"  LiteratureAgent search terms: target={target_terms} disease={disease_terms}")
+        return target_terms, disease_terms
 
     # Trailing salt / form words that papers usually omit ("pitolisant hydrochloride" -> "pitolisant").
     _SALT_SUFFIX_RE = re.compile(
@@ -1102,22 +1152,26 @@ class LiteratureAgent(BaseAgent):
         return names
 
     @staticmethod
-    def _term_clause(term: str) -> str:
-        """Title/Abstract clause matching common hyphenation variants of a term,
-        e.g. "non-alcoholic steatohepatitis" OR "nonalcoholic steatohepatitis"."""
+    def _term_clause(terms) -> str:
+        """Title/Abstract OR-clause over one or more terms plus their hyphenation
+        variants, e.g. "non-alcoholic steatohepatitis" OR "nonalcoholic steatohepatitis"."""
+        if isinstance(terms, str):
+            terms = [terms]
         variants: List[str] = []
-        for v in (term, term.replace("-", ""), term.replace("-", " ")):
-            v = re.sub(r"\s+", " ", v).strip()
-            if v and v.lower() not in {x.lower() for x in variants}:
-                variants.append(v)
+        for term in terms:
+            for v in (term, term.replace("-", ""), term.replace("-", " ")):
+                v = re.sub(r"\s+", " ", v).strip()
+                if v and v.lower() not in {x.lower() for x in variants}:
+                    variants.append(v)
         clauses = [f'"{v}"[Title/Abstract]' for v in variants]
         return clauses[0] if len(clauses) == 1 else "(" + " OR ".join(clauses) + ")"
 
     @classmethod
-    def _build_queries(cls, name: str, target: str, disease: str, strategy: str) -> List[str]:
-        """PubMed query strings for one drug name according to the routed strategy."""
-        by_target = f'"{name}"[Title/Abstract] AND {cls._term_clause(target)}'
-        by_disease = f'"{name}"[Title/Abstract] AND {cls._term_clause(disease)}'
+    def _build_queries(cls, name: str, target_terms, disease_terms, strategy: str) -> List[str]:
+        """PubMed query strings for one drug name according to the routed strategy.
+        target_terms / disease_terms: a term or list of synonymous terms."""
+        by_target = f'"{name}"[Title/Abstract] AND {cls._term_clause(target_terms)}'
+        by_disease = f'"{name}"[Title/Abstract] AND {cls._term_clause(disease_terms)}'
         if strategy == "target_focused":
             return [by_target]
         if strategy == "disease_focused":
@@ -1197,9 +1251,10 @@ class LiteratureAgent(BaseAgent):
         # CHAIN STEP 1: Build queries from the routed strategy and search PubMed.
         # Primary name first; synonyms are only used as a fallback when the
         # primary queries return no articles at all.
-        primary = [(q, drug) for q in self._build_queries(drug, target, disease, strategy)]
+        target_terms, disease_terms = self._search_terms(target, disease)
+        primary = [(q, drug) for q in self._build_queries(drug, target_terms, disease_terms, strategy)]
         fallbacks = [(q, name) for name in names[1:]
-                     for q in self._build_queries(name, target, disease, strategy)]
+                     for q in self._build_queries(name, target_terms, disease_terms, strategy)]
 
         articles: List[Dict] = []
         seen_pmids = set()
