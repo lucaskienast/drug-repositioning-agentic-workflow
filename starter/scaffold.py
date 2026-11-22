@@ -1283,7 +1283,7 @@ Return ONLY valid JSON in exactly this format:
 
         _run(primary)
         if not articles and fallbacks:
-            logger.info(f"  No PubMed hits for '{drug}' - trying synonyms {search_names[1:]}")
+            logger.info(f"  No PubMed hits for '{drug}' - trying synonyms {names[1:]}")
             _run(fallbacks)
 
         candidate.pubmed_articles = articles
