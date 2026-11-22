@@ -68,6 +68,8 @@ from ls_action_space.action_space import (
 # CONFIGURATION (PROVIDED - DO NOT MODIFY)
 # =============================================================================
 
+from dotenv import load_dotenv  # FIX: load_dotenv was called below but never imported (NameError)
+
 load_dotenv(".env")
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s [%(levelname)s] %(message)s")
@@ -578,6 +580,29 @@ class BaseAgent:
 #
 # =============================================================================
 # =============================================================================
+
+
+# -----------------------------------------------------------------------------
+# Compatibility shims for the provided code (kept out of the DO-NOT-MODIFY areas)
+# -----------------------------------------------------------------------------
+
+# 1) The provided _merge_sources() builds Provenance(..., chembl_target_id=...),
+#    but the provided Provenance dataclass has no such field (TypeError). Extend
+#    it here; _merge_sources() resolves the global name at call time.
+@dataclass
+class _ProvenanceWithTarget(Provenance):
+    chembl_target_id: str = ""
+
+
+Provenance = _ProvenanceWithTarget
+
+# 2) The ls_action_space query functions look for get_mock_* hooks in their OWN
+#    module namespace, so the mock functions defined above are never found and
+#    mock mode returns empty data. Register them with that module.
+import ls_action_space.action_space as _action_space_module
+
+for _mock_fn in (get_mock_chembl, get_mock_ot, get_mock_faers, get_mock_fda_label):
+    setattr(_action_space_module, _mock_fn.__name__, _mock_fn)
 
 
 class ActionPlanningAgent(BaseAgent):
