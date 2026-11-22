@@ -1547,10 +1547,24 @@ class EvaluationAgent(BaseAgent):
         # and adjustments already applied (shown to the critic to avoid repeats).
         self._baseline_scores: Dict[int, Dict[str, float]] = {}
         self._applied_history: List[Dict] = []
+        self._last_rejected: List[Dict] = []   # guardrail-blocked suggestions of the last refine call
 
     # Max total change of any component score across all iterations, relative to
     # its initial value (prevents re-penalising the same issue every iteration).
     MAX_CUMULATIVE_ADJUSTMENT = 2.0
+
+    def _guardrail_violation(self, cand: DrugCandidate, component: str, delta: float,
+                             previous: List[Dict]) -> Optional[str]:
+        """Evidence guardrails the optimizer cannot override. Returns a reason if the
+        adjustment must be blocked, else None."""
+        for p in previous:
+            if p["drug"] == cand.name and p["component"] == component and p["adjustment"] * delta < 0:
+                return "would reverse an earlier adjustment"
+        if delta > 0 and component == "literature_support" and cand.literature_support_level == "none":
+            return "no supporting literature found"
+        if delta > 0 and component == "disease_relevance" and not cand.indications:
+            return "no known indications for this drug"
+        return None
 
     def _component_bounds(self, cand: DrugCandidate, component: str) -> Tuple[float, float]:
         """Allowed range for a component: initial score +/- the cumulative cap, within 0-10."""
@@ -1666,6 +1680,7 @@ class EvaluationAgent(BaseAgent):
                 "rankings": rankings,
                 "critique": critique,
                 "adjustments": applied,
+                "rejected_adjustments": list(self._last_rejected),
                 "approved": False,
             })
         else:
@@ -1858,6 +1873,11 @@ toward {disease} via {target}. Look specifically for:
 Do not repeat a problem that an earlier adjustment already addressed. If the only remaining
 issues are ones already addressed, the order counts as reasonable.
 A component scored 0.0 cannot go down and one scored 10.0 cannot go up - do not request that.
+Judge each component ONLY on its own evidence: target_binding = pChEMBL, literature_support =
+literature found (Lit), safety_profile = safety flags / FAERS, development_stage = phase,
+disease_relevance = known indications. Never raise one component because another is strong
+(e.g. do not raise literature_support because of an advanced phase - that is double counting),
+and do not speculate (no "may be relevant"): cite only evidence shown above.
 
 Response rules:
 - If the order is reasonable, respond with exactly: Rankings are appropriate
@@ -1921,7 +1941,10 @@ Response rules:
             return ", ".join(parts)
 
         current = "\n".join(
-            f"{i + 1}. {c.name}: total={c.total_score:.2f}; {_fmt(c)}"
+            f"{i + 1}. {c.name}: total={c.total_score:.2f}; {_fmt(c)}\n"
+            f"   evidence: literature={c.literature_support_level}, "
+            f"indications={', '.join(c.indications) or 'none'}, "
+            f"safety_flags={', '.join(c.safety_flags) or 'none'}, phase={c.max_phase}, pChEMBL={c.pchembl_value}"
             for i, c in enumerate(candidates)
         )
 
@@ -1943,6 +1966,10 @@ Rules:
 - The new score must stay within that component's "allowed" range shown above. Only adjust a
   component that still has room in the direction you need (e.g. a score already at its minimum
   cannot go down); if the named component has no room, skip that point.
+- Each adjustment must be justified by that component's own evidence line above; never raise a
+  component because a different component is strong, and do not reverse an earlier adjustment.
+- literature_support cannot be raised when literature=none; disease_relevance cannot be raised
+  when indications=none (such suggestions are rejected automatically).
 - If no change is needed or possible, return an empty array: []
 
 Return ONLY a JSON array in exactly this format:
@@ -1958,6 +1985,7 @@ Return ONLY a JSON array in exactly this format:
         if not isinstance(adjustments, list):
             adjustments = []
         applied = []
+        self._last_rejected = []
 
         # Build lookup for finding candidates by name (exact, normalized, synonyms)
         lookup: Dict[str, DrugCandidate] = {}
@@ -1984,6 +2012,14 @@ Return ONLY a JSON array in exactly this format:
                 continue
             delta = max(-2.0, min(2.0, delta))
             if delta == 0:
+                continue
+
+            violation = self._guardrail_violation(cand, component, delta, self._applied_history + applied)
+            if violation:
+                logger.info(f"  Rejected adjustment ({violation}): {cand.name} {component} {delta:+.1f}")
+                self._last_rejected.append({"drug": cand.name, "component": component,
+                                            "requested_adjustment": delta, "rejected_because": violation,
+                                            "reason": str(adj.get("reason", ""))})
                 continue
 
             old_component = cand.scores.get(component, 0.0)
