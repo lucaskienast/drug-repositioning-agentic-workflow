@@ -727,6 +727,9 @@ class RoutingAgent(BaseAgent):
     properties and chooses the appropriate strategy.
     """
 
+    LITERATURE_STRATEGIES = {"target_focused", "disease_focused", "broad_search"}
+    SAFETY_STRATEGIES = {"comprehensive", "faers_only", "basic"}
+
     def __init__(self):
         super().__init__(
             "RoutingAgent",
@@ -768,22 +771,91 @@ class RoutingAgent(BaseAgent):
         # =====================================================================
         # TODO 2: Write your routing prompt here
         # =====================================================================
-        prompt = f"""
-        # YOUR PROMPT HERE
-        # Provide: candidate name, phase, MOA, pchembl_value
-        # Context: target gene, disease
-        # Ask for: literature_strategy, safety_strategy with reasoning
-        # Include routing guidelines
-        """
+        moa = candidate.mechanism_of_action or "Unknown"
+        synonyms = ", ".join(candidate.synonyms[:5]) if candidate.synonyms else "None"
+        indications = ", ".join(candidate.indications) if candidate.indications else "None recorded"
+        pchembl = f"{candidate.pchembl_value:.2f}" if candidate.pchembl_value else "No binding data"
+
+        prompt = f"""Determine the best enrichment strategy for one drug repurposing candidate.
+
+CONTEXT
+- Target gene: {target}
+- Disease of interest: {disease}
+
+CANDIDATE
+- Name: {candidate.name}
+- Synonyms: {synonyms}
+- ChEMBL ID: {candidate.chembl_id or "N/A"}
+- Open Targets drug ID: {candidate.opentargets_id or "N/A"}
+- Max clinical phase: {candidate.max_phase} (0 = preclinical, 4 = approved)
+- Mechanism of action (MOA): {moa}
+- Binding potency on {target} (pChEMBL): {pchembl}
+- Known indications: {indications}
+
+Choose ONE literature_strategy (how to search PubMed):
+- "target_focused":  MOA is known -> search for the drug together with {target}.
+- "disease_focused": MOA is unknown/unclear -> search for the drug together with {disease}.
+- "broad_search":    early-stage or sparsely studied compound with unknown MOA -> search both.
+
+Choose ONE safety_strategy (how deep the safety review goes):
+- "comprehensive": phase 3-4 drugs -> FDA label boxed warnings + FAERS (substantial human data exists).
+- "faers_only":    phase 1-2 drugs -> FAERS adverse event reports only.
+- "basic":         phase 0 / preclinical compounds -> minimal review (little or no human data).
+
+Guidelines:
+- Phase 3-4 drugs: use "comprehensive" safety and prefer "target_focused" literature.
+- Phase 0-2 drugs: use a lighter safety strategy ("faers_only" or "basic").
+- Unknown MOA: prefer "disease_focused", or "broad_search" if the compound is preclinical.
+- Base the decision only on the candidate data above.
+
+Return ONLY valid JSON in exactly this format:
+{{
+  "literature_strategy": "target_focused|disease_focused|broad_search",
+  "literature_reasoning": "<one sentence>",
+  "safety_strategy": "comprehensive|faers_only|basic",
+  "safety_reasoning": "<one sentence>"
+}}"""
+
+        # Rule-based fallback that mirrors the guidelines, used if the LLM output
+        # cannot be parsed or contains an invalid strategy.
+        moa_known = bool(candidate.mechanism_of_action)
+        if moa_known:
+            rule_lit = "target_focused"
+        elif candidate.max_phase >= 1:
+            rule_lit = "disease_focused"
+        else:
+            rule_lit = "broad_search"
+        if candidate.max_phase >= 3:
+            rule_safety = "comprehensive"
+        elif candidate.max_phase >= 1:
+            rule_safety = "faers_only"
+        else:
+            rule_safety = "basic"
 
         fallback = {
-            "literature_strategy": "broad_search",
-            "literature_reasoning": "Default fallback",
-            "safety_strategy": "basic",
-            "safety_reasoning": "Default fallback"
+            "literature_strategy": rule_lit,
+            "literature_reasoning": "Rule-based fallback (LLM output unparseable)",
+            "safety_strategy": rule_safety,
+            "safety_reasoning": "Rule-based fallback (LLM output unparseable)"
         }
 
         result = self._call_llm_json(prompt, fallback)
+        if not isinstance(result, dict):
+            result = dict(fallback)
+
+        # Only allow known strategies through to the enrichment agents.
+        lit = str(result.get("literature_strategy", "")).strip().lower()
+        if lit in self.LITERATURE_STRATEGIES:
+            result["literature_strategy"] = lit
+        else:
+            result["literature_strategy"] = rule_lit
+            result["literature_reasoning"] = f"Rule-based fallback (invalid strategy '{lit}')"
+        saf = str(result.get("safety_strategy", "")).strip().lower()
+        if saf in self.SAFETY_STRATEGIES:
+            result["safety_strategy"] = saf
+        else:
+            result["safety_strategy"] = rule_safety
+            result["safety_reasoning"] = f"Rule-based fallback (invalid strategy '{saf}')"
         # =====================================================================
         # END TODO 2
         # =====================================================================
